@@ -25,6 +25,8 @@ namespace Domain.Entities
 
         public int LoyaltyPoints { get; set; }
 
+        public bool IsVerified { get; set; } = true;
+
         public string? RefreshTokenHash { get; set; }
 
         public DateTime? RefreshTokenExpiry { get; set; }
