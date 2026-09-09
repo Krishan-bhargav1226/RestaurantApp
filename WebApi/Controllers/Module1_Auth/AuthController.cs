@@ -26,8 +26,15 @@ namespace WebApi.Controllers
             try
             {
                 var result = await _authApplication.RegisterUserAsync(input);
+                var otp = await _authApplication.GenerateRegistrationOtpAsync(result.Email);
 
-                return Ok(result);
+                await SendRegistrationOtpEmailAsync(result.Email, result.FullName, otp);
+
+                return Ok(new
+                {
+                    message = "Registration successful. OTP has been sent to your email.",
+                    data = result
+                });
             }
             catch (Exception ex)
             {
@@ -41,8 +48,15 @@ namespace WebApi.Controllers
             try
             {
                 var result = await _authApplication.RegisterCustomerAsync(input);
+                var otp = await _authApplication.GenerateRegistrationOtpAsync(result.Email);
 
-                return Ok(result);
+                await SendRegistrationOtpEmailAsync(result.Email, result.FullName, otp);
+
+                return Ok(new
+                {
+                    message = "Registration successful. OTP has been sent to your email.",
+                    data = result
+                });
             }
             catch (Exception ex)
             {
@@ -138,6 +152,25 @@ namespace WebApi.Controllers
             {
                 return BadRequest(ex.Message);
             }
+        }
+
+        private async Task SendRegistrationOtpEmailAsync(
+            string email,
+            string fullName,
+            string otp)
+        {
+            var subject = "RestaurantApp Registration OTP";
+            var body = $@"
+                <html>
+                <body style='font-family: Arial, sans-serif;'>
+                    <h3>Welcome to RestaurantApp, {fullName}!</h3>
+                    <p>Your registration OTP is:</p>
+                    <h2>{otp}</h2>
+                    <p>This OTP will expire in 10 minutes.</p>
+                </body>
+                </html>";
+
+            await _emailService.SendEmailAsync(email, subject, body);
         }
     }
 }
