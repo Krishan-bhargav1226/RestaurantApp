@@ -1,11 +1,13 @@
 using Application.Applications.Orders;
 using Application.Dtos.Orders;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "SuperAdmin,BranchAdmin,Manager,Staff")]
     public class OrderController : ControllerBase
     {
         private readonly IOrderApplication _orderApplication;
@@ -19,7 +21,6 @@ namespace WebApi.Controllers
         public async Task<IActionResult> Create(CreateUpdateOrderDto input)
         {
             var result = await _orderApplication.CreateAsync(input);
-
             return Ok(result);
         }
 
@@ -27,7 +28,6 @@ namespace WebApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             var result = await _orderApplication.GetAllAsync();
-
             return Ok(result);
         }
 
@@ -35,17 +35,13 @@ namespace WebApi.Controllers
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _orderApplication.GetByIdAsync(id);
-
             return Ok(result);
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> Update(
-            int id,
-            [FromBody] CreateUpdateOrderDto input)
+        public async Task<IActionResult> Update(int id, [FromBody] CreateUpdateOrderDto input)
         {
             var result = await _orderApplication.UpdateAsync(id, input);
-
             return Ok(result);
         }
 
@@ -53,7 +49,6 @@ namespace WebApi.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             await _orderApplication.DeleteAsync(id);
-
             return NoContent();
         }
     }
