@@ -18,6 +18,8 @@ namespace Infrastructure
 
         public DbSet<BranchProduct> BranchProducts { get; set; }
 
+        public DbSet<Ingredient> Ingredients { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -54,6 +56,9 @@ namespace Infrastructure
                 .HasQueryFilter(x => !x.IsDeleted);
 
             modelBuilder.Entity<BranchProduct>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<Ingredient>()
                 .HasQueryFilter(x => !x.IsDeleted);
         }
     }
