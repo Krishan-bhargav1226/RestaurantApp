@@ -102,12 +102,8 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 
 builder.Services.AddAutoMapper(cfg => { }, typeof(BranchProfile).Assembly);
 
-var jwtKey = builder.Configuration["Jwt:Key"];
-
-if (string.IsNullOrWhiteSpace(jwtKey))
-{
-    throw new InvalidOperationException("Jwt:Key is not configured in appsettings.json.");
-}
+var jwtKey = builder.Configuration["Jwt:Key"]
+             ?? "RestaurantApp-Development-Only-Replace-With-Secret-32Chars";
 
 var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
 
@@ -121,7 +117,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuer = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "RestaurantApp",
             ValidateAudience = true,
-            ValidAudience = builder.Configuration["Jwt:Audience"] ?? "RestaurantApp",
+            ValidAudience = builder.Configuration["Jwt:Audience"] ?? "RestaurantAppUsers",
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
