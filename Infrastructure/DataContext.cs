@@ -20,6 +20,8 @@ namespace Infrastructure
 
         public DbSet<Ingredient> Ingredients { get; set; }
 
+        public DbSet<RecipeIngredient> RecipeIngredients { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -45,6 +47,20 @@ namespace Infrastructure
                 .HasForeignKey(x => x.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Product -> RecipeIngredient
+            modelBuilder.Entity<RecipeIngredient>()
+                .HasOne<Product>()
+                .WithMany()
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Ingredient -> RecipeIngredient
+            modelBuilder.Entity<RecipeIngredient>()
+                .HasOne<Ingredient>()
+                .WithMany()
+                .HasForeignKey(x => x.IngredientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Soft Delete
             modelBuilder.Entity<Branch>()
                 .HasQueryFilter(x => !x.IsDeleted);
@@ -59,6 +75,9 @@ namespace Infrastructure
                 .HasQueryFilter(x => !x.IsDeleted);
 
             modelBuilder.Entity<Ingredient>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<RecipeIngredient>()
                 .HasQueryFilter(x => !x.IsDeleted);
         }
     }
