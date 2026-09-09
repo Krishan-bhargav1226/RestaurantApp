@@ -29,6 +29,8 @@ namespace Domain.Entities
 
         public int? BranchId { get; set; }
 
+        public bool IsVerified { get; set; } = true;
+
         public string? RefreshTokenHash { get; set; }
 
         public DateTime? RefreshTokenExpiry { get; set; }
