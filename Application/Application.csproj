@@ -7,12 +7,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="Dtos\Menu\**" />
-	  <EmbeddedResource Remove="Dtos\Menu\**" />
-	  <None Remove="Dtos\Menu\**" />
-	</ItemGroup>
-
-	<ItemGroup>
 	  <PackageReference Include="AutoMapper" Version="16.2.0" />
 	  <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12">
 	    <PrivateAssets>all</PrivateAssets>
