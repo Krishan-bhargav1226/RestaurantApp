@@ -22,21 +22,21 @@ namespace Infrastructure
         {
             base.OnModelCreating(modelBuilder);
 
-            // Category -> Product Relationship
+            // Category -> Product
             modelBuilder.Entity<Product>()
                 .HasOne(x => x.Category)
                 .WithMany()
                 .HasForeignKey(x => x.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Branch -> BranchProduct Relationship
+            // Branch -> BranchProduct
             modelBuilder.Entity<BranchProduct>()
                 .HasOne<Branch>()
                 .WithMany()
                 .HasForeignKey(x => x.BranchId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Product -> BranchProduct Relationship
+            // Product -> BranchProduct
             modelBuilder.Entity<BranchProduct>()
                 .HasOne<Product>()
                 .WithMany()
