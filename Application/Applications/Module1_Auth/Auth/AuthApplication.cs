@@ -45,15 +45,13 @@ namespace Application.Applications.Auth
                 Email = email,
                 Phone = phone,
                 PasswordHash = HashPassword(input.Password),
-                Role = UserRole.Staff
+                Role = UserRole.Staff,
+                IsVerified = false
             };
 
             var result = await _authRepository.CreateUserAsync(user);
-            var response = CreateUserResponse(result);
 
-            await SaveUserRefreshTokenAsync(result, response);
-
-            return response;
+            return CreateRegistrationResponse(result.Id, result.FullName, result.Email, result.Phone, result.Role, result.BranchId, false);
         }
 
         public async Task<AuthResponseDto> RegisterCustomerAsync(RegisterDto input)
@@ -76,15 +74,13 @@ namespace Application.Applications.Auth
                 FullName = input.FullName.Trim(),
                 Email = email,
                 Phone = phone,
-                PasswordHash = HashPassword(input.Password)
+                PasswordHash = HashPassword(input.Password),
+                IsVerified = false
             };
 
             var result = await _authRepository.CreateCustomerAsync(customer);
-            var response = CreateCustomerResponse(result);
 
-            await SaveCustomerRefreshTokenAsync(result, response);
-
-            return response;
+            return CreateRegistrationResponse(result.Id, result.FullName, result.Email, result.Phone, null, null, true);
         }
 
         public async Task<string> GenerateRegistrationOtpAsync(string phoneOrEmail)
@@ -99,6 +95,11 @@ namespace Application.Applications.Auth
             if (user == null && customer == null)
             {
                 throw new KeyNotFoundException("User or customer not found.");
+            }
+
+            if ((user != null && user.IsVerified) || (customer != null && customer.IsVerified))
+            {
+                throw new InvalidOperationException("Account is already verified.");
             }
 
             var otp = GenerateOtp();
@@ -116,27 +117,94 @@ namespace Application.Applications.Auth
             return otp;
         }
 
+        public async Task VerifyRegistrationOtpAsync(VerifyRegistrationOtpDto input)
+        {
+            var value = input.Email.Trim().ToLower();
+            var otpHash = HashToken(input.OTP.Trim());
+
+            var resetOtp = await _authRepository.GetPasswordResetOTPAsync(value, otpHash);
+
+            if (resetOtp == null || resetOtp.ExpiresAt < DateTime.UtcNow || resetOtp.IsUsed)
+            {
+                throw new InvalidOperationException("OTP is invalid, expired or already used.");
+            }
+
+            var user = await _authRepository.GetUserAsync(value);
+
+            if (user != null)
+            {
+                if (user.IsVerified)
+                {
+                    throw new InvalidOperationException("Account is already verified.");
+                }
+
+                user.IsVerified = true;
+                user.UpdatedDate = DateTime.UtcNow;
+                await _authRepository.UpdateUserAsync(user);
+            }
+            else
+            {
+                var customer = await _authRepository.GetCustomerAsync(value);
+
+                if (customer == null)
+                {
+                    throw new KeyNotFoundException("User or customer not found.");
+                }
+
+                if (customer.IsVerified)
+                {
+                    throw new InvalidOperationException("Account is already verified.");
+                }
+
+                customer.IsVerified = true;
+                customer.UpdatedDate = DateTime.UtcNow;
+                await _authRepository.UpdateCustomerAsync(customer);
+            }
+
+            resetOtp.IsUsed = true;
+            resetOtp.UpdatedDate = DateTime.UtcNow;
+            await _authRepository.UpdatePasswordResetOTPAsync(resetOtp);
+        }
+
         public async Task<AuthResponseDto> LoginAsync(LoginDto input)
         {
             var loginValue = input.EmailOrPhone.Trim().ToLower();
 
             var user = await _authRepository.GetUserAsync(loginValue);
 
-            if (user != null && VerifyPassword(input.Password, user.PasswordHash))
+            if (user != null)
             {
+                if (!VerifyPassword(input.Password, user.PasswordHash))
+                {
+                    throw new UnauthorizedAccessException("Invalid email/phone or password.");
+                }
+
+                if (!user.IsVerified)
+                {
+                    throw new UnauthorizedAccessException("Account is not verified. Please verify the registration OTP first.");
+                }
+
                 var response = CreateUserResponse(user);
                 await SaveUserRefreshTokenAsync(user, response);
-
                 return response;
             }
 
             var customer = await _authRepository.GetCustomerAsync(loginValue);
 
-            if (customer != null && VerifyPassword(input.Password, customer.PasswordHash))
+            if (customer != null)
             {
+                if (!VerifyPassword(input.Password, customer.PasswordHash))
+                {
+                    throw new UnauthorizedAccessException("Invalid email/phone or password.");
+                }
+
+                if (!customer.IsVerified)
+                {
+                    throw new UnauthorizedAccessException("Account is not verified. Please verify the registration OTP first.");
+                }
+
                 var response = CreateCustomerResponse(customer);
                 await SaveCustomerRefreshTokenAsync(customer, response);
-
                 return response;
             }
 
@@ -151,9 +219,13 @@ namespace Application.Applications.Auth
 
             if (user != null)
             {
+                if (!user.IsVerified)
+                {
+                    throw new UnauthorizedAccessException("Account is not verified.");
+                }
+
                 var response = CreateUserResponse(user);
                 await SaveUserRefreshTokenAsync(user, response);
-
                 return response;
             }
 
@@ -161,9 +233,13 @@ namespace Application.Applications.Auth
 
             if (customer != null)
             {
+                if (!customer.IsVerified)
+                {
+                    throw new UnauthorizedAccessException("Account is not verified.");
+                }
+
                 var response = CreateCustomerResponse(customer);
                 await SaveCustomerRefreshTokenAsync(customer, response);
-
                 return response;
             }
 
@@ -204,9 +280,7 @@ namespace Application.Applications.Auth
             var value = input.PhoneOrEmail.Trim().ToLower();
             var otpHash = HashToken(input.OTP.Trim());
 
-            var resetOtp = await _authRepository.GetPasswordResetOTPAsync(
-                value,
-                otpHash);
+            var resetOtp = await _authRepository.GetPasswordResetOTPAsync(value, otpHash);
 
             if (resetOtp == null || resetOtp.ExpiresAt < DateTime.UtcNow || resetOtp.IsUsed)
             {
@@ -221,7 +295,6 @@ namespace Application.Applications.Auth
                 user.RefreshTokenHash = null;
                 user.RefreshTokenExpiry = null;
                 user.UpdatedDate = DateTime.UtcNow;
-
                 await _authRepository.UpdateUserAsync(user);
             }
             else
@@ -237,14 +310,35 @@ namespace Application.Applications.Auth
                 customer.RefreshTokenHash = null;
                 customer.RefreshTokenExpiry = null;
                 customer.UpdatedDate = DateTime.UtcNow;
-
                 await _authRepository.UpdateCustomerAsync(customer);
             }
 
             resetOtp.IsUsed = true;
             resetOtp.UpdatedDate = DateTime.UtcNow;
-
             await _authRepository.UpdatePasswordResetOTPAsync(resetOtp);
+        }
+
+        private static AuthResponseDto CreateRegistrationResponse(
+            int id,
+            string fullName,
+            string email,
+            string phone,
+            UserRole? role,
+            int? branchId,
+            bool isCustomer)
+        {
+            return new AuthResponseDto
+            {
+                Id = id,
+                FullName = fullName,
+                Email = email,
+                Phone = phone,
+                Role = role,
+                BranchId = branchId,
+                IsCustomer = isCustomer,
+                Token = string.Empty,
+                RefreshToken = string.Empty
+            };
         }
 
         private AuthResponseDto CreateUserResponse(User user)
@@ -260,15 +354,7 @@ namespace Application.Applications.Auth
                 IsCustomer = false
             };
 
-            AddTokens(
-                response,
-                user.Id,
-                user.FullName,
-                user.Email,
-                user.Role.ToString(),
-                user.BranchId,
-                false);
-
+            AddTokens(response, user.Id, user.FullName, user.Email, user.Role.ToString(), user.BranchId, false);
             return response;
         }
 
@@ -285,37 +371,23 @@ namespace Application.Applications.Auth
                 IsCustomer = true
             };
 
-            AddTokens(
-                response,
-                customer.Id,
-                customer.FullName,
-                customer.Email,
-                "Customer",
-                null,
-                true);
-
+            AddTokens(response, customer.Id, customer.FullName, customer.Email, "Customer", null, true);
             return response;
         }
 
-        private async Task SaveUserRefreshTokenAsync(
-            User user,
-            AuthResponseDto response)
+        private async Task SaveUserRefreshTokenAsync(User user, AuthResponseDto response)
         {
             user.RefreshTokenHash = HashToken(response.RefreshToken);
             user.RefreshTokenExpiry = response.RefreshTokenExpiresAt;
             user.UpdatedDate = DateTime.UtcNow;
-
             await _authRepository.UpdateUserAsync(user);
         }
 
-        private async Task SaveCustomerRefreshTokenAsync(
-            Customer customer,
-            AuthResponseDto response)
+        private async Task SaveCustomerRefreshTokenAsync(Customer customer, AuthResponseDto response)
         {
             customer.RefreshTokenHash = HashToken(response.RefreshToken);
             customer.RefreshTokenExpiry = response.RefreshTokenExpiresAt;
             customer.UpdatedDate = DateTime.UtcNow;
-
             await _authRepository.UpdateCustomerAsync(customer);
         }
 
@@ -339,12 +411,8 @@ namespace Application.Applications.Auth
                 throw new InvalidOperationException("JWT settings are not configured correctly in appsettings.json.");
             }
 
-            var expiryMinutes = Convert.ToInt32(
-                _configuration["Jwt:ExpiryInMinutes"] ?? "60");
-
-            var refreshTokenDays = Convert.ToInt32(
-                _configuration["Jwt:RefreshTokenExpiryInDays"] ?? "7");
-
+            var expiryMinutes = Convert.ToInt32(_configuration["Jwt:ExpiryInMinutes"] ?? "60");
+            var refreshTokenDays = Convert.ToInt32(_configuration["Jwt:RefreshTokenExpiryInDays"] ?? "7");
             var expiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes);
             var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(refreshTokenDays);
 
@@ -363,13 +431,8 @@ namespace Application.Applications.Auth
                 claims.Add(new Claim("BranchId", branchId.Value.ToString()));
             }
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(jwtKey));
-
-            var credentials = new SigningCredentials(
-                key,
-                SecurityAlgorithms.HmacSha256);
-
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var token = new JwtSecurityToken(
                 issuer,
                 audience,
@@ -385,48 +448,33 @@ namespace Application.Applications.Auth
 
         private static string GenerateOtp()
         {
-            return RandomNumberGenerator
-                .GetInt32(100000, 1000000)
-                .ToString();
+            return RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
         }
 
         private static string GenerateRefreshToken()
         {
             var bytes = RandomNumberGenerator.GetBytes(64);
-
             return Convert.ToBase64String(bytes);
         }
 
         private static string HashToken(string value)
         {
-            var bytes = SHA256.HashData(
-                Encoding.UTF8.GetBytes(value));
-
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
             return Convert.ToBase64String(bytes);
         }
 
         private static string HashPassword(string password)
         {
             var salt = RandomNumberGenerator.GetBytes(16);
-
-            var hash = Rfc2898DeriveBytes.Pbkdf2(
-                password,
-                salt,
-                100000,
-                HashAlgorithmName.SHA256,
-                32);
-
+            var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, 100000, HashAlgorithmName.SHA256, 32);
             return $"100000.{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
         }
 
-        private static bool VerifyPassword(
-            string password,
-            string storedPassword)
+        private static bool VerifyPassword(string password, string storedPassword)
         {
             var parts = storedPassword.Split('.', 3);
 
-            if (parts.Length != 3 ||
-                !int.TryParse(parts[0], out var iterations))
+            if (parts.Length != 3 || !int.TryParse(parts[0], out var iterations))
             {
                 return false;
             }
@@ -435,17 +483,8 @@ namespace Application.Applications.Auth
             {
                 var salt = Convert.FromBase64String(parts[1]);
                 var expectedHash = Convert.FromBase64String(parts[2]);
-
-                var actualHash = Rfc2898DeriveBytes.Pbkdf2(
-                    password,
-                    salt,
-                    iterations,
-                    HashAlgorithmName.SHA256,
-                    expectedHash.Length);
-
-                return CryptographicOperations.FixedTimeEquals(
-                    actualHash,
-                    expectedHash);
+                var actualHash = Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations, HashAlgorithmName.SHA256, expectedHash.Length);
+                return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
             }
             catch
             {
