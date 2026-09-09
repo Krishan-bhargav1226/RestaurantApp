@@ -7,6 +7,7 @@ namespace Application.Applications.Auth
         Task<AuthResponseDto> RegisterUserAsync(RegisterDto input);
         Task<AuthResponseDto> RegisterCustomerAsync(RegisterDto input);
         Task<string> GenerateRegistrationOtpAsync(string phoneOrEmail);
+        Task VerifyRegistrationOtpAsync(VerifyRegistrationOtpDto input);
         Task<AuthResponseDto> LoginAsync(LoginDto input);
         Task<AuthResponseDto> RefreshTokenAsync(RefreshTokenDto input);
         Task<string> ForgotPasswordAsync(string phoneOrEmail);
