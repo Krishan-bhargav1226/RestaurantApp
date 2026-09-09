@@ -29,16 +29,12 @@ namespace Application.Applications.Auth
             var email = input.Email.Trim().ToLower();
             var phone = input.Phone.Trim();
 
-            var existingUser = await _authRepository.GetUserAsync(email);
-
-            if (existingUser != null)
+            if (await _authRepository.GetUserAsync(email) != null)
             {
                 throw new InvalidOperationException("Email is already registered.");
             }
 
-            existingUser = await _authRepository.GetUserAsync(phone);
-
-            if (existingUser != null)
+            if (await _authRepository.GetUserAsync(phone) != null)
             {
                 throw new InvalidOperationException("Phone is already registered.");
             }
@@ -53,8 +49,11 @@ namespace Application.Applications.Auth
             };
 
             var result = await _authRepository.CreateUserAsync(user);
+            var response = CreateUserResponse(result);
 
-            return CreateUserResponse(result);
+            await SaveUserRefreshTokenAsync(result, response);
+
+            return response;
         }
 
         public async Task<AuthResponseDto> RegisterCustomerAsync(RegisterDto input)
@@ -62,16 +61,12 @@ namespace Application.Applications.Auth
             var email = input.Email.Trim().ToLower();
             var phone = input.Phone.Trim();
 
-            var existingCustomer = await _authRepository.GetCustomerAsync(email);
-
-            if (existingCustomer != null)
+            if (await _authRepository.GetCustomerAsync(email) != null)
             {
                 throw new InvalidOperationException("Email is already registered.");
             }
 
-            existingCustomer = await _authRepository.GetCustomerAsync(phone);
-
-            if (existingCustomer != null)
+            if (await _authRepository.GetCustomerAsync(phone) != null)
             {
                 throw new InvalidOperationException("Phone is already registered.");
             }
@@ -85,8 +80,11 @@ namespace Application.Applications.Auth
             };
 
             var result = await _authRepository.CreateCustomerAsync(customer);
+            var response = CreateCustomerResponse(result);
 
-            return CreateCustomerResponse(result);
+            await SaveCustomerRefreshTokenAsync(result, response);
+
+            return response;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginDto input)
@@ -97,14 +95,18 @@ namespace Application.Applications.Auth
 
             if (user != null && VerifyPassword(input.Password, user.PasswordHash))
             {
-                return CreateUserResponse(user);
+                var response = CreateUserResponse(user);
+                await SaveUserRefreshTokenAsync(user, response);
+                return response;
             }
 
             var customer = await _authRepository.GetCustomerAsync(loginValue);
 
             if (customer != null && VerifyPassword(input.Password, customer.PasswordHash))
             {
-                return CreateCustomerResponse(customer);
+                var response = CreateCustomerResponse(customer);
+                await SaveCustomerRefreshTokenAsync(customer, response);
+                return response;
             }
 
             throw new UnauthorizedAccessException("Invalid email/phone or password.");
@@ -118,14 +120,18 @@ namespace Application.Applications.Auth
 
             if (user != null)
             {
-                return await CreateUserResponseWithRefreshTokenAsync(user);
+                var response = CreateUserResponse(user);
+                await SaveUserRefreshTokenAsync(user, response);
+                return response;
             }
 
             var customer = await _authRepository.GetCustomerByRefreshTokenAsync(refreshTokenHash);
 
             if (customer != null)
             {
-                return await CreateCustomerResponseWithRefreshTokenAsync(customer);
+                var response = CreateCustomerResponse(customer);
+                await SaveCustomerRefreshTokenAsync(customer, response);
+                return response;
             }
 
             throw new UnauthorizedAccessException("Invalid or expired refresh token.");
@@ -144,12 +150,11 @@ namespace Application.Applications.Auth
             }
 
             var otp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
-            var otpHash = HashToken(otp);
 
             var resetOtp = new PasswordResetOTP
             {
                 PhoneOrEmail = value,
-                OTPHash = otpHash,
+                OTPHash = HashToken(otp),
                 ExpiresAt = DateTime.UtcNow.AddMinutes(10),
                 IsUsed = false
             };
@@ -166,7 +171,7 @@ namespace Application.Applications.Auth
 
             var resetOtp = await _authRepository.GetPasswordResetOTPAsync(value, otpHash);
 
-            if (resetOtp == null || resetOtp.IsUsed || resetOtp.ExpiresAt < DateTime.UtcNow)
+            if (resetOtp == null || resetOtp.ExpiresAt < DateTime.UtcNow)
             {
                 throw new InvalidOperationException("OTP is invalid or expired.");
             }
@@ -176,9 +181,9 @@ namespace Application.Applications.Auth
             if (user != null)
             {
                 user.PasswordHash = HashPassword(input.NewPassword);
-                user.UpdatedDate = DateTime.UtcNow;
                 user.RefreshTokenHash = null;
                 user.RefreshTokenExpiry = null;
+                user.UpdatedDate = DateTime.UtcNow;
 
                 await _authRepository.UpdateUserAsync(user);
             }
@@ -192,9 +197,9 @@ namespace Application.Applications.Auth
                 }
 
                 customer.PasswordHash = HashPassword(input.NewPassword);
-                customer.UpdatedDate = DateTime.UtcNow;
                 customer.RefreshTokenHash = null;
                 customer.RefreshTokenExpiry = null;
+                customer.UpdatedDate = DateTime.UtcNow;
 
                 await _authRepository.UpdateCustomerAsync(customer);
             }
@@ -241,28 +246,22 @@ namespace Application.Applications.Auth
             return response;
         }
 
-        private async Task<AuthResponseDto> CreateUserResponseWithRefreshTokenAsync(User user)
+        private async Task SaveUserRefreshTokenAsync(User user, AuthResponseDto response)
         {
-            var response = CreateUserResponse(user);
-
             user.RefreshTokenHash = HashToken(response.RefreshToken);
             user.RefreshTokenExpiry = response.RefreshTokenExpiresAt;
+            user.UpdatedDate = DateTime.UtcNow;
 
             await _authRepository.UpdateUserAsync(user);
-
-            return response;
         }
 
-        private async Task<AuthResponseDto> CreateCustomerResponseWithRefreshTokenAsync(Customer customer)
+        private async Task SaveCustomerRefreshTokenAsync(Customer customer, AuthResponseDto response)
         {
-            var response = CreateCustomerResponse(customer);
-
             customer.RefreshTokenHash = HashToken(response.RefreshToken);
             customer.RefreshTokenExpiry = response.RefreshTokenExpiresAt;
+            customer.UpdatedDate = DateTime.UtcNow;
 
             await _authRepository.UpdateCustomerAsync(customer);
-
-            return response;
         }
 
         private void AddTokens(
