@@ -1,71 +1,63 @@
+using Application.Applications.BranchProducts;
 using Application.Applications.Branches;
 using Application.Applications.Categories;
-using Application.Applications.Products;
-using Application.Applications.BranchProducts;
 using Application.Applications.Ingredients;
+using Application.Applications.Orders;
+using Application.Applications.Products;
 using Application.Applications.RecipeIngredients;
+using Application.Applications.TableStatusHistories;
+using Application.Applications.Tables;
 using Application.Common.Mapping;
 using Infrastructure;
+using Infrastructure.Repositories.BranchProducts;
 using Infrastructure.Repositories.Branches;
 using Infrastructure.Repositories.Categories;
-using Infrastructure.Repositories.Products;
-using Infrastructure.Repositories.BranchProducts;
 using Infrastructure.Repositories.Ingredients;
+using Infrastructure.Repositories.Orders;
+using Infrastructure.Repositories.Products;
 using Infrastructure.Repositories.RecipeIngredients;
+using Infrastructure.Repositories.TableStatusHistories;
+using Infrastructure.Repositories.Tables;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add Controllers
 builder.Services.AddControllers();
-
-// Swagger / OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Database
-var connectionString =
-    builder.Configuration.GetConnectionString("DefaultConnection");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<DataContext>(options => options.UseSqlServer(connectionString));
 
-builder.Services.AddDbContext<DataContext>(options =>
-    options.UseSqlServer(connectionString));
-
-// Repositories
 builder.Services.AddScoped<IBranchRepository, BranchRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IBranchProductRepository, BranchProductRepository>();
 builder.Services.AddScoped<IIngredientRepository, IngredientRepository>();
 builder.Services.AddScoped<IRecipeIngredientRepository, RecipeIngredientRepository>();
+builder.Services.AddScoped<ITableRepository, TableRepository>();
+builder.Services.AddScoped<ITableStatusHistoryRepository, TableStatusHistoryRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
-// Application Services
 builder.Services.AddScoped<IBranchApplication, BranchApplication>();
 builder.Services.AddScoped<ICategoryApplication, CategoryApplication>();
 builder.Services.AddScoped<IProductApplication, ProductApplication>();
 builder.Services.AddScoped<IBranchProductApplication, BranchProductApplication>();
 builder.Services.AddScoped<IIngredientApplication, IngredientApplication>();
 builder.Services.AddScoped<IRecipeIngredientApplication, RecipeIngredientApplication>();
+builder.Services.AddScoped<ITableApplication, TableApplication>();
+builder.Services.AddScoped<ITableStatusHistoryApplication, TableStatusHistoryApplication>();
+builder.Services.AddScoped<IOrderApplication, OrderApplication>();
 
-// AutoMapper
-builder.Services.AddAutoMapper(cfg =>
-{
-}, typeof(BranchProfile).Assembly);
+builder.Services.AddAutoMapper(cfg => { }, typeof(BranchProfile).Assembly);
 
 var app = builder.Build();
-
 app.UseExceptionHandler("/error");
-
-// Swagger
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
