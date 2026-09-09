@@ -97,6 +97,7 @@ namespace Application.Applications.Auth
             {
                 var response = CreateUserResponse(user);
                 await SaveUserRefreshTokenAsync(user, response);
+
                 return response;
             }
 
@@ -106,6 +107,7 @@ namespace Application.Applications.Auth
             {
                 var response = CreateCustomerResponse(customer);
                 await SaveCustomerRefreshTokenAsync(customer, response);
+
                 return response;
             }
 
@@ -122,6 +124,7 @@ namespace Application.Applications.Auth
             {
                 var response = CreateUserResponse(user);
                 await SaveUserRefreshTokenAsync(user, response);
+
                 return response;
             }
 
@@ -131,6 +134,7 @@ namespace Application.Applications.Auth
             {
                 var response = CreateCustomerResponse(customer);
                 await SaveCustomerRefreshTokenAsync(customer, response);
+
                 return response;
             }
 
@@ -142,14 +146,18 @@ namespace Application.Applications.Auth
             var value = phoneOrEmail.Trim().ToLower();
 
             var user = await _authRepository.GetUserAsync(value);
-            var customer = user == null ? await _authRepository.GetCustomerAsync(value) : null;
+            var customer = user == null
+                ? await _authRepository.GetCustomerAsync(value)
+                : null;
 
             if (user == null && customer == null)
             {
                 throw new KeyNotFoundException("User or customer not found.");
             }
 
-            var otp = RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+            var otp = RandomNumberGenerator
+                .GetInt32(100000, 1000000)
+                .ToString();
 
             var resetOtp = new PasswordResetOTP
             {
@@ -169,7 +177,9 @@ namespace Application.Applications.Auth
             var value = input.PhoneOrEmail.Trim().ToLower();
             var otpHash = HashToken(input.OTP.Trim());
 
-            var resetOtp = await _authRepository.GetPasswordResetOTPAsync(value, otpHash);
+            var resetOtp = await _authRepository.GetPasswordResetOTPAsync(
+                value,
+                otpHash);
 
             if (resetOtp == null || resetOtp.ExpiresAt < DateTime.UtcNow)
             {
@@ -223,7 +233,14 @@ namespace Application.Applications.Auth
                 IsCustomer = false
             };
 
-            AddTokens(response, user.Id, user.FullName, user.Email, user.Role.ToString(), user.BranchId, false);
+            AddTokens(
+                response,
+                user.Id,
+                user.FullName,
+                user.Email,
+                user.Role.ToString(),
+                user.BranchId,
+                false);
 
             return response;
         }
@@ -241,12 +258,21 @@ namespace Application.Applications.Auth
                 IsCustomer = true
             };
 
-            AddTokens(response, customer.Id, customer.FullName, customer.Email, "Customer", null, true);
+            AddTokens(
+                response,
+                customer.Id,
+                customer.FullName,
+                customer.Email,
+                "Customer",
+                null,
+                true);
 
             return response;
         }
 
-        private async Task SaveUserRefreshTokenAsync(User user, AuthResponseDto response)
+        private async Task SaveUserRefreshTokenAsync(
+            User user,
+            AuthResponseDto response)
         {
             user.RefreshTokenHash = HashToken(response.RefreshToken);
             user.RefreshTokenExpiry = response.RefreshTokenExpiresAt;
@@ -255,7 +281,9 @@ namespace Application.Applications.Auth
             await _authRepository.UpdateUserAsync(user);
         }
 
-        private async Task SaveCustomerRefreshTokenAsync(Customer customer, AuthResponseDto response)
+        private async Task SaveCustomerRefreshTokenAsync(
+            Customer customer,
+            AuthResponseDto response)
         {
             customer.RefreshTokenHash = HashToken(response.RefreshToken);
             customer.RefreshTokenExpiry = response.RefreshTokenExpiresAt;
@@ -273,17 +301,15 @@ namespace Application.Applications.Auth
             int? branchId,
             bool isCustomer)
         {
-            var jwtKey = _configuration["Jwt:Key"];
-
-            if (string.IsNullOrWhiteSpace(jwtKey))
-            {
-                throw new InvalidOperationException("Jwt:Key is not configured.");
-            }
+            var jwtKey = _configuration["Jwt:Key"]
+                         ?? "RestaurantApp-Development-Only-Replace-With-Secret-32Chars";
 
             var issuer = _configuration["Jwt:Issuer"] ?? "RestaurantApp";
-            var audience = _configuration["Jwt:Audience"] ?? "RestaurantApp";
-            var expiryMinutes = Convert.ToInt32(_configuration["Jwt:ExpiryMinutes"] ?? "60");
-            var refreshTokenDays = Convert.ToInt32(_configuration["Jwt:RefreshTokenExpiryDays"] ?? "7");
+            var audience = _configuration["Jwt:Audience"] ?? "RestaurantAppUsers";
+            var expiryMinutes = Convert.ToInt32(
+                _configuration["Jwt:ExpiryMinutes"] ?? "60");
+            var refreshTokenDays = Convert.ToInt32(
+                _configuration["Jwt:RefreshTokenExpiryDays"] ?? "7");
 
             var expiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes);
             var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(refreshTokenDays);
@@ -291,6 +317,7 @@ namespace Application.Applications.Auth
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, id.ToString()),
                 new Claim(ClaimTypes.Name, fullName),
                 new Claim(ClaimTypes.Email, email),
                 new Claim(ClaimTypes.Role, role),
@@ -302,8 +329,12 @@ namespace Application.Applications.Auth
                 claims.Add(new Claim("BranchId", branchId.Value.ToString()));
             }
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey));
+
+            var credentials = new SigningCredentials(
+                key,
+                SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
                 issuer,
@@ -321,18 +352,22 @@ namespace Application.Applications.Auth
         private static string GenerateRefreshToken()
         {
             var bytes = RandomNumberGenerator.GetBytes(64);
+
             return Convert.ToBase64String(bytes);
         }
 
         private static string HashToken(string value)
         {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+            var bytes = SHA256.HashData(
+                Encoding.UTF8.GetBytes(value));
+
             return Convert.ToBase64String(bytes);
         }
 
         private static string HashPassword(string password)
         {
             var salt = RandomNumberGenerator.GetBytes(16);
+
             var hash = Rfc2898DeriveBytes.Pbkdf2(
                 password,
                 salt,
@@ -343,11 +378,14 @@ namespace Application.Applications.Auth
             return $"100000.{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
         }
 
-        private static bool VerifyPassword(string password, string storedPassword)
+        private static bool VerifyPassword(
+            string password,
+            string storedPassword)
         {
             var parts = storedPassword.Split('.', 3);
 
-            if (parts.Length != 3 || !int.TryParse(parts[0], out var iterations))
+            if (parts.Length != 3 ||
+                !int.TryParse(parts[0], out var iterations))
             {
                 return false;
             }
@@ -364,7 +402,9 @@ namespace Application.Applications.Auth
                     HashAlgorithmName.SHA256,
                     expectedHash.Length);
 
-                return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash);
+                return CryptographicOperations.FixedTimeEquals(
+                    actualHash,
+                    expectedHash);
             }
             catch
             {
