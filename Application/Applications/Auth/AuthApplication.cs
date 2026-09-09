@@ -9,98 +9,407 @@ using Infrastructure.Repositories.Auth;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
-namespace Application.Applications.Auth;
-
-public class AuthApplication : IAuthApplication
+namespace Application.Applications.Auth
 {
-    private readonly IAuthRepository _repository;
-    private readonly IConfiguration _configuration;
-
-    public AuthApplication(IAuthRepository repository, IConfiguration configuration)
+    public class AuthApplication : IAuthApplication
     {
-        _repository = repository;
-        _configuration = configuration;
-    }
+        private readonly IAuthRepository _authRepository;
+        private readonly IConfiguration _configuration;
 
-    public async Task<AuthResponseDto> RegisterUserAsync(RegisterDto input)
-    {
-        if (await _repository.UserEmailOrPhoneExistsAsync(input.Email, input.Phone))
-            throw new InvalidOperationException("A user with this email or phone already exists.");
-
-        var user = new User
+        public AuthApplication(
+            IAuthRepository authRepository,
+            IConfiguration configuration)
         {
-            FullName = input.FullName.Trim(), Email = input.Email.Trim().ToLowerInvariant(), Phone = input.Phone.Trim(),
-            PasswordHash = HashPassword(input.Password), Role = UserRole.Staff
-        };
-        await _repository.CreateUserAsync(user);
-        return CreateResponse(user);
-    }
+            _authRepository = authRepository;
+            _configuration = configuration;
+        }
 
-    public async Task<AuthResponseDto> RegisterCustomerAsync(RegisterDto input)
-    {
-        if (await _repository.CustomerEmailOrPhoneExistsAsync(input.Email, input.Phone))
-            throw new InvalidOperationException("A customer with this email or phone already exists.");
-
-        var customer = new Customer
+        public async Task<AuthResponseDto> RegisterUserAsync(RegisterDto input)
         {
-            FullName = input.FullName.Trim(), Email = input.Email.Trim().ToLowerInvariant(), Phone = input.Phone.Trim(),
-            PasswordHash = HashPassword(input.Password)
-        };
-        await _repository.CreateCustomerAsync(customer);
-        return CreateResponse(customer);
-    }
+            var email = input.Email.Trim().ToLower();
+            var phone = input.Phone.Trim();
 
-    public async Task<AuthResponseDto> LoginAsync(LoginDto input)
-    {
-        var user = await _repository.GetUserAsync(input.EmailOrPhone.Trim());
-        if (user != null && VerifyPassword(input.Password, user.PasswordHash)) return CreateResponse(user);
+            if (await _authRepository.GetUserAsync(email) != null)
+            {
+                throw new InvalidOperationException("Email is already registered.");
+            }
 
-        var customer = await _repository.GetCustomerAsync(input.EmailOrPhone.Trim());
-        if (customer != null && VerifyPassword(input.Password, customer.PasswordHash)) return CreateResponse(customer);
+            if (await _authRepository.GetUserAsync(phone) != null)
+            {
+                throw new InvalidOperationException("Phone is already registered.");
+            }
 
-        throw new UnauthorizedAccessException("Invalid email/phone or password.");
-    }
+            var user = new User
+            {
+                FullName = input.FullName.Trim(),
+                Email = email,
+                Phone = phone,
+                PasswordHash = HashPassword(input.Password),
+                Role = UserRole.Staff
+            };
 
-    private AuthResponseDto CreateResponse(User user)
-    {
-        var (token, expires) = GenerateToken(user.Id, user.FullName, user.Email, user.Role.ToString(), user.BranchId, false);
-        return new AuthResponseDto { Id = user.Id, FullName = user.FullName, Email = user.Email, Phone = user.Phone, Token = token, ExpiresAt = expires, Role = user.Role, BranchId = user.BranchId, IsCustomer = false };
-    }
+            var result = await _authRepository.CreateUserAsync(user);
+            var response = CreateUserResponse(result);
 
-    private AuthResponseDto CreateResponse(Customer customer)
-    {
-        var (token, expires) = GenerateToken(customer.Id, customer.FullName, customer.Email, "Customer", null, true);
-        return new AuthResponseDto { Id = customer.Id, FullName = customer.FullName, Email = customer.Email, Phone = customer.Phone, Token = token, ExpiresAt = expires, Role = null, BranchId = null, IsCustomer = true };
-    }
+            await SaveUserRefreshTokenAsync(result, response);
 
-    private (string Token, DateTime Expires) GenerateToken(int id, string name, string email, string role, int? branchId, bool isCustomer)
-    {
-        var key = _configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is not configured.");
-        var issuer = _configuration["Jwt:Issuer"] ?? "RestaurantApp";
-        var audience = _configuration["Jwt:Audience"] ?? "RestaurantApp";
-        var minutes = int.TryParse(_configuration["Jwt:ExpiryMinutes"], out var m) ? m : 60;
-        var expires = DateTime.UtcNow.AddMinutes(minutes);
-        var claims = new List<Claim> { new(JwtRegisteredClaimNames.Sub, id.ToString()), new(ClaimTypes.Name, name), new(ClaimTypes.Email, email), new(ClaimTypes.Role, role), new("IsCustomer", isCustomer.ToString()) };
-        if (branchId.HasValue) claims.Add(new Claim("BranchId", branchId.Value.ToString()));
-        var credentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)), SecurityAlgorithms.HmacSha256);
-        var token = new JwtSecurityToken(issuer, audience, claims, expires: expires, signingCredentials: credentials);
-        return (new JwtSecurityTokenHandler().WriteToken(token), expires);
-    }
+            return response;
+        }
 
-    private static string HashPassword(string password)
-    {
-        var salt = RandomNumberGenerator.GetBytes(16);
-        var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, 100_000, HashAlgorithmName.SHA256, 32);
-        return $"100000.{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
-    }
+        public async Task<AuthResponseDto> RegisterCustomerAsync(RegisterDto input)
+        {
+            var email = input.Email.Trim().ToLower();
+            var phone = input.Phone.Trim();
 
-    private static bool VerifyPassword(string password, string stored)
-    {
-        var parts = stored.Split('.', 3);
-        if (parts.Length != 3 || !int.TryParse(parts[0], out var iterations)) return false;
-        var salt = Convert.FromBase64String(parts[1]);
-        var expected = Convert.FromBase64String(parts[2]);
-        var actual = Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations, HashAlgorithmName.SHA256, expected.Length);
-        return CryptographicOperations.FixedTimeEquals(actual, expected);
+            if (await _authRepository.GetCustomerAsync(email) != null)
+            {
+                throw new InvalidOperationException("Email is already registered.");
+            }
+
+            if (await _authRepository.GetCustomerAsync(phone) != null)
+            {
+                throw new InvalidOperationException("Phone is already registered.");
+            }
+
+            var customer = new Customer
+            {
+                FullName = input.FullName.Trim(),
+                Email = email,
+                Phone = phone,
+                PasswordHash = HashPassword(input.Password)
+            };
+
+            var result = await _authRepository.CreateCustomerAsync(customer);
+            var response = CreateCustomerResponse(result);
+
+            await SaveCustomerRefreshTokenAsync(result, response);
+
+            return response;
+        }
+
+        public async Task<AuthResponseDto> LoginAsync(LoginDto input)
+        {
+            var loginValue = input.EmailOrPhone.Trim().ToLower();
+
+            var user = await _authRepository.GetUserAsync(loginValue);
+
+            if (user != null && VerifyPassword(input.Password, user.PasswordHash))
+            {
+                var response = CreateUserResponse(user);
+                await SaveUserRefreshTokenAsync(user, response);
+
+                return response;
+            }
+
+            var customer = await _authRepository.GetCustomerAsync(loginValue);
+
+            if (customer != null && VerifyPassword(input.Password, customer.PasswordHash))
+            {
+                var response = CreateCustomerResponse(customer);
+                await SaveCustomerRefreshTokenAsync(customer, response);
+
+                return response;
+            }
+
+            throw new UnauthorizedAccessException("Invalid email/phone or password.");
+        }
+
+        public async Task<AuthResponseDto> RefreshTokenAsync(RefreshTokenDto input)
+        {
+            var refreshTokenHash = HashToken(input.RefreshToken);
+
+            var user = await _authRepository.GetUserByRefreshTokenAsync(refreshTokenHash);
+
+            if (user != null)
+            {
+                var response = CreateUserResponse(user);
+                await SaveUserRefreshTokenAsync(user, response);
+
+                return response;
+            }
+
+            var customer = await _authRepository.GetCustomerByRefreshTokenAsync(refreshTokenHash);
+
+            if (customer != null)
+            {
+                var response = CreateCustomerResponse(customer);
+                await SaveCustomerRefreshTokenAsync(customer, response);
+
+                return response;
+            }
+
+            throw new UnauthorizedAccessException("Invalid or expired refresh token.");
+        }
+
+        public async Task<string> ForgotPasswordAsync(string phoneOrEmail)
+        {
+            var value = phoneOrEmail.Trim().ToLower();
+
+            var user = await _authRepository.GetUserAsync(value);
+            var customer = user == null
+                ? await _authRepository.GetCustomerAsync(value)
+                : null;
+
+            if (user == null && customer == null)
+            {
+                throw new KeyNotFoundException("User or customer not found.");
+            }
+
+            var otp = RandomNumberGenerator
+                .GetInt32(100000, 1000000)
+                .ToString();
+
+            var resetOtp = new PasswordResetOTP
+            {
+                PhoneOrEmail = value,
+                OTPHash = HashToken(otp),
+                ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                IsUsed = false
+            };
+
+            await _authRepository.CreatePasswordResetOTPAsync(resetOtp);
+
+            return otp;
+        }
+
+        public async Task ResetPasswordAsync(ResetPasswordDto input)
+        {
+            var value = input.PhoneOrEmail.Trim().ToLower();
+            var otpHash = HashToken(input.OTP.Trim());
+
+            var resetOtp = await _authRepository.GetPasswordResetOTPAsync(
+                value,
+                otpHash);
+
+            if (resetOtp == null || resetOtp.ExpiresAt < DateTime.UtcNow)
+            {
+                throw new InvalidOperationException("OTP is invalid or expired.");
+            }
+
+            var user = await _authRepository.GetUserAsync(value);
+
+            if (user != null)
+            {
+                user.PasswordHash = HashPassword(input.NewPassword);
+                user.RefreshTokenHash = null;
+                user.RefreshTokenExpiry = null;
+                user.UpdatedDate = DateTime.UtcNow;
+
+                await _authRepository.UpdateUserAsync(user);
+            }
+            else
+            {
+                var customer = await _authRepository.GetCustomerAsync(value);
+
+                if (customer == null)
+                {
+                    throw new KeyNotFoundException("User or customer not found.");
+                }
+
+                customer.PasswordHash = HashPassword(input.NewPassword);
+                customer.RefreshTokenHash = null;
+                customer.RefreshTokenExpiry = null;
+                customer.UpdatedDate = DateTime.UtcNow;
+
+                await _authRepository.UpdateCustomerAsync(customer);
+            }
+
+            resetOtp.IsUsed = true;
+            resetOtp.UpdatedDate = DateTime.UtcNow;
+
+            await _authRepository.UpdatePasswordResetOTPAsync(resetOtp);
+        }
+
+        private AuthResponseDto CreateUserResponse(User user)
+        {
+            var response = new AuthResponseDto
+            {
+                Id = user.Id,
+                FullName = user.FullName,
+                Email = user.Email,
+                Phone = user.Phone,
+                Role = user.Role,
+                BranchId = user.BranchId,
+                IsCustomer = false
+            };
+
+            AddTokens(
+                response,
+                user.Id,
+                user.FullName,
+                user.Email,
+                user.Role.ToString(),
+                user.BranchId,
+                false);
+
+            return response;
+        }
+
+        private AuthResponseDto CreateCustomerResponse(Customer customer)
+        {
+            var response = new AuthResponseDto
+            {
+                Id = customer.Id,
+                FullName = customer.FullName,
+                Email = customer.Email,
+                Phone = customer.Phone,
+                Role = null,
+                BranchId = null,
+                IsCustomer = true
+            };
+
+            AddTokens(
+                response,
+                customer.Id,
+                customer.FullName,
+                customer.Email,
+                "Customer",
+                null,
+                true);
+
+            return response;
+        }
+
+        private async Task SaveUserRefreshTokenAsync(
+            User user,
+            AuthResponseDto response)
+        {
+            user.RefreshTokenHash = HashToken(response.RefreshToken);
+            user.RefreshTokenExpiry = response.RefreshTokenExpiresAt;
+            user.UpdatedDate = DateTime.UtcNow;
+
+            await _authRepository.UpdateUserAsync(user);
+        }
+
+        private async Task SaveCustomerRefreshTokenAsync(
+            Customer customer,
+            AuthResponseDto response)
+        {
+            customer.RefreshTokenHash = HashToken(response.RefreshToken);
+            customer.RefreshTokenExpiry = response.RefreshTokenExpiresAt;
+            customer.UpdatedDate = DateTime.UtcNow;
+
+            await _authRepository.UpdateCustomerAsync(customer);
+        }
+
+        private void AddTokens(
+            AuthResponseDto response,
+            int id,
+            string fullName,
+            string email,
+            string role,
+            int? branchId,
+            bool isCustomer)
+        {
+            var jwtKey = _configuration["Jwt:Key"]
+                         ?? "RestaurantApp-Development-Only-Replace-With-Secret-32Chars";
+
+            var issuer = _configuration["Jwt:Issuer"] ?? "RestaurantApp";
+            var audience = _configuration["Jwt:Audience"] ?? "RestaurantAppUsers";
+            var expiryMinutes = Convert.ToInt32(
+                _configuration["Jwt:ExpiryMinutes"] ?? "60");
+            var refreshTokenDays = Convert.ToInt32(
+                _configuration["Jwt:RefreshTokenExpiryDays"] ?? "7");
+
+            var expiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes);
+            var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(refreshTokenDays);
+
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, id.ToString()),
+                new Claim(ClaimTypes.Name, fullName),
+                new Claim(ClaimTypes.Email, email),
+                new Claim(ClaimTypes.Role, role),
+                new Claim("IsCustomer", isCustomer.ToString())
+            };
+
+            if (branchId.HasValue)
+            {
+                claims.Add(new Claim("BranchId", branchId.Value.ToString()));
+            }
+
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtKey));
+
+            var credentials = new SigningCredentials(
+                key,
+                SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer,
+                audience,
+                claims,
+                expires: expiresAt,
+                signingCredentials: credentials);
+
+            response.Token = new JwtSecurityTokenHandler().WriteToken(token);
+            response.RefreshToken = GenerateRefreshToken();
+            response.ExpiresAt = expiresAt;
+            response.RefreshTokenExpiresAt = refreshTokenExpiresAt;
+        }
+
+        private static string GenerateRefreshToken()
+        {
+            var bytes = RandomNumberGenerator.GetBytes(64);
+
+            return Convert.ToBase64String(bytes);
+        }
+
+        private static string HashToken(string value)
+        {
+            var bytes = SHA256.HashData(
+                Encoding.UTF8.GetBytes(value));
+
+            return Convert.ToBase64String(bytes);
+        }
+
+        private static string HashPassword(string password)
+        {
+            var salt = RandomNumberGenerator.GetBytes(16);
+
+            var hash = Rfc2898DeriveBytes.Pbkdf2(
+                password,
+                salt,
+                100000,
+                HashAlgorithmName.SHA256,
+                32);
+
+            return $"100000.{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
+        }
+
+        private static bool VerifyPassword(
+            string password,
+            string storedPassword)
+        {
+            var parts = storedPassword.Split('.', 3);
+
+            if (parts.Length != 3 ||
+                !int.TryParse(parts[0], out var iterations))
+            {
+                return false;
+            }
+
+            try
+            {
+                var salt = Convert.FromBase64String(parts[1]);
+                var expectedHash = Convert.FromBase64String(parts[2]);
+
+                var actualHash = Rfc2898DeriveBytes.Pbkdf2(
+                    password,
+                    salt,
+                    iterations,
+                    HashAlgorithmName.SHA256,
+                    expectedHash.Length);
+
+                return CryptographicOperations.FixedTimeEquals(
+                    actualHash,
+                    expectedHash);
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 }

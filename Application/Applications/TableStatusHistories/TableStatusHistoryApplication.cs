@@ -3,36 +3,83 @@ using AutoMapper;
 using Domain.Entities;
 using Infrastructure.Repositories.TableStatusHistories;
 
-namespace Application.Applications.TableStatusHistories;
-
-public class TableStatusHistoryApplication : ITableStatusHistoryApplication
+namespace Application.Applications.TableStatusHistories
 {
-    private readonly ITableStatusHistoryRepository _repository;
-    private readonly IMapper _mapper;
-    public TableStatusHistoryApplication(ITableStatusHistoryRepository repository, IMapper mapper) { _repository = repository; _mapper = mapper; }
+    public class TableStatusHistoryApplication : ITableStatusHistoryApplication
+    {
+        private readonly ITableStatusHistoryRepository _tableStatusHistoryRepository;
+        private readonly IMapper _mapper;
 
-    public async Task<TableStatusHistoryResponseDto> CreateAsync(CreateUpdateTableStatusHistoryDto input)
-    {
-        var entity = _mapper.Map<TableStatusHistory>(input);
-        if (entity.StartTime == default) entity.StartTime = DateTime.UtcNow;
-        return _mapper.Map<TableStatusHistoryResponseDto>(await _repository.CreateAsync(entity));
-    }
-    public async Task<List<TableStatusHistoryResponseDto>> GetAllAsync() => _mapper.Map<List<TableStatusHistoryResponseDto>>(await _repository.GetAllAsync());
-    public async Task<TableStatusHistoryResponseDto> GetByIdAsync(int id)
-    {
-        var entity = await _repository.GetByIdAsync(id) ?? throw new KeyNotFoundException("Table status history not found.");
-        return _mapper.Map<TableStatusHistoryResponseDto>(entity);
-    }
-    public async Task<TableStatusHistoryResponseDto> UpdateAsync(int id, CreateUpdateTableStatusHistoryDto input)
-    {
-        var entity = await _repository.GetByIdAsync(id) ?? throw new KeyNotFoundException("Table status history not found.");
-        _mapper.Map(input, entity);
-        entity.UpdatedDate = DateTime.UtcNow;
-        return _mapper.Map<TableStatusHistoryResponseDto>(await _repository.UpdateAsync(entity));
-    }
-    public async Task DeleteAsync(int id)
-    {
-        var entity = await _repository.GetByIdAsync(id) ?? throw new KeyNotFoundException("Table status history not found.");
-        await _repository.DeleteAsync(entity);
+        public TableStatusHistoryApplication(
+            ITableStatusHistoryRepository tableStatusHistoryRepository,
+            IMapper mapper)
+        {
+            _tableStatusHistoryRepository = tableStatusHistoryRepository;
+            _mapper = mapper;
+        }
+
+        public async Task<TableStatusHistoryResponseDto> CreateAsync(CreateUpdateTableStatusHistoryDto input)
+        {
+            var history = _mapper.Map<TableStatusHistory>(input);
+
+            if (history.StartTime == default)
+            {
+                history.StartTime = DateTime.UtcNow;
+            }
+
+            var createdHistory = await _tableStatusHistoryRepository.CreateAsync(history);
+
+            return _mapper.Map<TableStatusHistoryResponseDto>(createdHistory);
+        }
+
+        public async Task<List<TableStatusHistoryResponseDto>> GetAllAsync()
+        {
+            var histories = await _tableStatusHistoryRepository.GetAllAsync();
+
+            return _mapper.Map<List<TableStatusHistoryResponseDto>>(histories);
+        }
+
+        public async Task<TableStatusHistoryResponseDto> GetByIdAsync(int id)
+        {
+            var history = await _tableStatusHistoryRepository.GetByIdAsync(id);
+
+            if (history == null)
+            {
+                throw new KeyNotFoundException("Table status history not found.");
+            }
+
+            return _mapper.Map<TableStatusHistoryResponseDto>(history);
+        }
+
+        public async Task<TableStatusHistoryResponseDto> UpdateAsync(
+            int id,
+            CreateUpdateTableStatusHistoryDto input)
+        {
+            var history = await _tableStatusHistoryRepository.GetByIdAsync(id);
+
+            if (history == null)
+            {
+                throw new KeyNotFoundException("Table status history not found.");
+            }
+
+            _mapper.Map(input, history);
+            history.UpdatedDate = DateTime.UtcNow;
+
+            var updatedHistory = await _tableStatusHistoryRepository.UpdateAsync(history);
+
+            return _mapper.Map<TableStatusHistoryResponseDto>(updatedHistory);
+        }
+
+        public async Task DeleteAsync(int id)
+        {
+            var history = await _tableStatusHistoryRepository.GetByIdAsync(id);
+
+            if (history == null)
+            {
+                throw new KeyNotFoundException("Table status history not found.");
+            }
+
+            await _tableStatusHistoryRepository.DeleteAsync(history);
+        }
     }
 }

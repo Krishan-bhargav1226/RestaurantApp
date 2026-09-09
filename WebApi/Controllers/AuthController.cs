@@ -1,22 +1,143 @@
 using Application.Applications.Auth;
 using Application.Dtos.Auth;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Services;
 
-namespace WebApi.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class AuthController : ControllerBase
+namespace WebApi.Controllers
 {
-    private readonly IAuthApplication _application;
-    public AuthController(IAuthApplication application) => _application = application;
+    [Route("api/[controller]")]
+    [ApiController]
+    public class AuthController : ControllerBase
+    {
+        private readonly IAuthApplication _authApplication;
+        private readonly IEmailService _emailService;
 
-    [HttpPost("register-user")]
-    public async Task<IActionResult> RegisterUser(RegisterDto input) => Ok(await _application.RegisterUserAsync(input));
+        public AuthController(
+            IAuthApplication authApplication,
+            IEmailService emailService)
+        {
+            _authApplication = authApplication;
+            _emailService = emailService;
+        }
 
-    [HttpPost("register-customer")]
-    public async Task<IActionResult> RegisterCustomer(RegisterDto input) => Ok(await _application.RegisterCustomerAsync(input));
+        [HttpPost("register-user")]
+        public async Task<IActionResult> RegisterUser(RegisterDto input)
+        {
+            try
+            {
+                var result = await _authApplication.RegisterUserAsync(input);
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginDto input) => Ok(await _application.LoginAsync(input));
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("register-customer")]
+        public async Task<IActionResult> RegisterCustomer(RegisterDto input)
+        {
+            try
+            {
+                var result = await _authApplication.RegisterCustomerAsync(input);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(LoginDto input)
+        {
+            try
+            {
+                var result = await _authApplication.LoginAsync(input);
+
+                return Ok(new
+                {
+                    message = "Login successful",
+                    data = result
+                });
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken(RefreshTokenDto input)
+        {
+            try
+            {
+                var result = await _authApplication.RefreshTokenAsync(input);
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordDto input)
+        {
+            try
+            {
+                if (!input.PhoneOrEmail.Contains("@"))
+                {
+                    return BadRequest("Email based password reset is currently configured. Phone OTP can be added with an SMS service later.");
+                }
+
+                var otp = await _authApplication.ForgotPasswordAsync(input.PhoneOrEmail);
+
+                var subject = "RestaurantApp Password Reset OTP";
+                var body = $@"
+                    <html>
+                    <body style='font-family: Arial, sans-serif;'>
+                        <h3>Password Reset</h3>
+                        <p>Your RestaurantApp password reset OTP is:</p>
+                        <h2>{otp}</h2>
+                        <p>This OTP will expire in 10 minutes.</p>
+                    </body>
+                    </html>";
+
+                await _emailService.SendEmailAsync(input.PhoneOrEmail, subject, body);
+
+                return Ok("OTP has been sent to your email.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto input)
+        {
+            try
+            {
+                await _authApplication.ResetPasswordAsync(input);
+
+                return Ok("Password has been reset successfully.");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+    }
 }
