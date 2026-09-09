@@ -97,6 +97,11 @@ namespace WebApi.Controllers
         {
             try
             {
+                if (!input.PhoneOrEmail.Contains("@"))
+                {
+                    return BadRequest("Email based password reset is currently configured. Phone OTP can be added with an SMS service later.");
+                }
+
                 var otp = await _authApplication.ForgotPasswordAsync(input.PhoneOrEmail);
 
                 var subject = "RestaurantApp Password Reset OTP";
