@@ -17,25 +17,37 @@ namespace Infrastructure
         public DbSet<TableStatusHistory> TableStatusHistories { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<User> Users { get; set; }
+        public DbSet<Customer> Customers { get; set; }
+        public DbSet<CustomerAddress> CustomerAddresses { get; set; }
+        public DbSet<PasswordResetOTP> PasswordResetOTPs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
-
             modelBuilder.Entity<Product>().HasOne(x => x.Category).WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<BranchProduct>().HasOne<Branch>().WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<BranchProduct>().HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<RecipeIngredient>().HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<RecipeIngredient>().HasOne<Ingredient>().WithMany().HasForeignKey(x => x.IngredientId).OnDelete(DeleteBehavior.Restrict);
-
             modelBuilder.Entity<Table>().HasOne<Branch>().WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Table>().HasIndex(x => new { x.BranchId, x.TableNumber }).IsUnique().HasFilter("[IsDeleted] = 0");
             modelBuilder.Entity<TableStatusHistory>().HasOne<Table>().WithMany().HasForeignKey(x => x.TableId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<TableStatusHistory>().HasOne<User>().WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Order>().HasOne<Branch>().WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Order>().HasOne<Table>().WithMany().HasForeignKey(x => x.TableId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Order>().HasOne<Customer>().WithMany().HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Order>().HasOne<CustomerAddress>().WithMany().HasForeignKey(x => x.AddressId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Order>().HasOne<User>().WithMany().HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<OrderItem>().HasOne<Order>().WithMany(x => x.Items).HasForeignKey(x => x.OrderId).OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<OrderItem>().HasOne<Product>().WithMany().HasForeignKey(x => x.ProductId).OnDelete(DeleteBehavior.Restrict);
-
+            modelBuilder.Entity<User>().HasOne<Branch>().WithMany().HasForeignKey(x => x.BranchId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<CustomerAddress>().HasOne<Customer>().WithMany(x => x.Addresses).HasForeignKey(x => x.CustomerId).OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<User>().HasIndex(x => x.Email).IsUnique().HasFilter("[IsDeleted] = 0");
+            modelBuilder.Entity<User>().HasIndex(x => x.Phone).IsUnique().HasFilter("[IsDeleted] = 0");
+            modelBuilder.Entity<Customer>().HasIndex(x => x.Email).IsUnique().HasFilter("[IsDeleted] = 0");
+            modelBuilder.Entity<Customer>().HasIndex(x => x.Phone).IsUnique().HasFilter("[IsDeleted] = 0");
+            modelBuilder.Entity<CustomerAddress>().HasIndex(x => new { x.CustomerId, x.Label }).IsUnique().HasFilter("[IsDeleted] = 0");
             modelBuilder.Entity<Branch>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Category>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Product>().HasQueryFilter(x => !x.IsDeleted);
@@ -46,6 +58,10 @@ namespace Infrastructure
             modelBuilder.Entity<TableStatusHistory>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<Order>().HasQueryFilter(x => !x.IsDeleted);
             modelBuilder.Entity<OrderItem>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<User>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<Customer>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<CustomerAddress>().HasQueryFilter(x => !x.IsDeleted);
+            modelBuilder.Entity<PasswordResetOTP>().HasQueryFilter(x => !x.IsDeleted);
         }
     }
 }
