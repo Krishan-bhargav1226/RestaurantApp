@@ -26,24 +26,122 @@ using Infrastructure.Repositories.Tables;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Restaurant Management API",
+        Version = "v1"
+    });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter JWT token. Example: Bearer {your token}"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+builder.Services.AddProblemDetails();
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<DataContext>(options => options.UseSqlServer(connectionString));
 
-builder.Services.AddScoped<IBranchRepository, BranchRepository>(); builder.Services.AddScoped<ICategoryRepository, CategoryRepository>(); builder.Services.AddScoped<IProductRepository, ProductRepository>(); builder.Services.AddScoped<IBranchProductRepository, BranchProductRepository>(); builder.Services.AddScoped<IIngredientRepository, IngredientRepository>(); builder.Services.AddScoped<IRecipeIngredientRepository, RecipeIngredientRepository>(); builder.Services.AddScoped<ITableRepository, TableRepository>(); builder.Services.AddScoped<ITableStatusHistoryRepository, TableStatusHistoryRepository>(); builder.Services.AddScoped<IOrderRepository, OrderRepository>(); builder.Services.AddScoped<IAuthRepository, AuthRepository>(); builder.Services.AddScoped<ICustomerAddressRepository, CustomerAddressRepository>();
+builder.Services.AddDbContext<DataContext>(options =>
+    options.UseSqlServer(connectionString));
 
-builder.Services.AddScoped<IBranchApplication, BranchApplication>(); builder.Services.AddScoped<ICategoryApplication, CategoryApplication>(); builder.Services.AddScoped<IProductApplication, ProductApplication>(); builder.Services.AddScoped<IBranchProductApplication, BranchProductApplication>(); builder.Services.AddScoped<IIngredientApplication, IngredientApplication>(); builder.Services.AddScoped<IRecipeIngredientApplication, RecipeIngredientApplication>(); builder.Services.AddScoped<ITableApplication, TableApplication>(); builder.Services.AddScoped<ITableStatusHistoryApplication, TableStatusHistoryApplication>(); builder.Services.AddScoped<IOrderApplication, OrderApplication>(); builder.Services.AddScoped<IAuthApplication, AuthApplication>(); builder.Services.AddScoped<ICustomerAddressApplication, CustomerAddressApplication>();
+builder.Services.AddScoped<IBranchRepository, BranchRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IBranchProductRepository, BranchProductRepository>();
+builder.Services.AddScoped<IIngredientRepository, IngredientRepository>();
+builder.Services.AddScoped<IRecipeIngredientRepository, RecipeIngredientRepository>();
+builder.Services.AddScoped<ITableRepository, TableRepository>();
+builder.Services.AddScoped<ITableStatusHistoryRepository, TableStatusHistoryRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IAuthRepository, AuthRepository>();
+builder.Services.AddScoped<ICustomerAddressRepository, CustomerAddressRepository>();
+
+builder.Services.AddScoped<IBranchApplication, BranchApplication>();
+builder.Services.AddScoped<ICategoryApplication, CategoryApplication>();
+builder.Services.AddScoped<IProductApplication, ProductApplication>();
+builder.Services.AddScoped<IBranchProductApplication, BranchProductApplication>();
+builder.Services.AddScoped<IIngredientApplication, IngredientApplication>();
+builder.Services.AddScoped<IRecipeIngredientApplication, RecipeIngredientApplication>();
+builder.Services.AddScoped<ITableApplication, TableApplication>();
+builder.Services.AddScoped<ITableStatusHistoryApplication, TableStatusHistoryApplication>();
+builder.Services.AddScoped<IOrderApplication, OrderApplication>();
+builder.Services.AddScoped<IAuthApplication, AuthApplication>();
+builder.Services.AddScoped<ICustomerAddressApplication, CustomerAddressApplication>();
+
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 builder.Services.AddAutoMapper(cfg => { }, typeof(BranchProfile).Assembly);
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "RestaurantApp-Development-Only-Replace-With-Secret-32Chars";
+
+var jwtKey = builder.Configuration["Jwt:Key"];
+
+if (string.IsNullOrWhiteSpace(jwtKey))
+{
+    throw new InvalidOperationException("Jwt:Key is not configured in appsettings.json.");
+}
+
 var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options => options.TokenValidationParameters = new TokenValidationParameters { ValidateIssuerSigningKey = true, IssuerSigningKey = signingKey, ValidateIssuer = true, ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "RestaurantApp", ValidateAudience = true, ValidAudience = builder.Configuration["Jwt:Audience"] ?? "RestaurantApp", ValidateLifetime = true, ClockSkew = TimeSpan.Zero });
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = signingKey,
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "RestaurantApp",
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"] ?? "RestaurantApp",
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
-app.UseExceptionHandler("/error");
-if (app.Environment.IsDevelopment()) { app.UseSwagger(); app.UseSwaggerUI(); }
-app.UseHttpsRedirection(); app.UseAuthentication(); app.UseAuthorization(); app.MapControllers(); app.Run();
+
+app.UseExceptionHandler();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+
+app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();
