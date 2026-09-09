@@ -2,18 +2,60 @@ using Application.Applications.TableStatusHistories;
 using Application.Dtos.TableStatusHistories;
 using Microsoft.AspNetCore.Mvc;
 
-namespace WebApi.Controllers;
-
-[Route("api/[controller]")]
-[ApiController]
-public class TableStatusHistoryController : ControllerBase
+namespace WebApi.Controllers
 {
-    private readonly ITableStatusHistoryApplication _application;
-    public TableStatusHistoryController(ITableStatusHistoryApplication application) => _application = application;
+    [Route("api/[controller]")]
+    [ApiController]
+    public class TableStatusHistoryController : ControllerBase
+    {
+        private readonly ITableStatusHistoryApplication _tableStatusHistoryApplication;
 
-    [HttpPost] public async Task<IActionResult> Create(CreateUpdateTableStatusHistoryDto input) => Ok(await _application.CreateAsync(input));
-    [HttpGet] public async Task<IActionResult> GetAll() => Ok(await _application.GetAllAsync());
-    [HttpGet("{id:int}")] public async Task<IActionResult> GetById(int id) => Ok(await _application.GetByIdAsync(id));
-    [HttpPut("{id:int}")] public async Task<IActionResult> Update(int id, CreateUpdateTableStatusHistoryDto input) => Ok(await _application.UpdateAsync(id, input));
-    [HttpDelete("{id:int}")] public async Task<IActionResult> Delete(int id) { await _application.DeleteAsync(id); return NoContent(); }
+        public TableStatusHistoryController(
+            ITableStatusHistoryApplication tableStatusHistoryApplication)
+        {
+            _tableStatusHistoryApplication = tableStatusHistoryApplication;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Create(CreateUpdateTableStatusHistoryDto input)
+        {
+            var result = await _tableStatusHistoryApplication.CreateAsync(input);
+
+            return Ok(result);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var result = await _tableStatusHistoryApplication.GetAllAsync();
+
+            return Ok(result);
+        }
+
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var result = await _tableStatusHistoryApplication.GetByIdAsync(id);
+
+            return Ok(result);
+        }
+
+        [HttpPut("{id:int}")]
+        public async Task<IActionResult> Update(
+            int id,
+            [FromBody] CreateUpdateTableStatusHistoryDto input)
+        {
+            var result = await _tableStatusHistoryApplication.UpdateAsync(id, input);
+
+            return Ok(result);
+        }
+
+        [HttpDelete("{id:int}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            await _tableStatusHistoryApplication.DeleteAsync(id);
+
+            return NoContent();
+        }
+    }
 }
