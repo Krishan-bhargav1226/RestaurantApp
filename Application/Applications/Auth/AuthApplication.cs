@@ -181,9 +181,9 @@ namespace Application.Applications.Auth
                 value,
                 otpHash);
 
-            if (resetOtp == null || resetOtp.ExpiresAt < DateTime.UtcNow)
+            if (resetOtp == null || resetOtp.ExpiresAt < DateTime.UtcNow || resetOtp.IsUsed)
             {
-                throw new InvalidOperationException("OTP is invalid or expired.");
+                throw new InvalidOperationException("OTP is invalid, expired or already used.");
             }
 
             var user = await _authRepository.GetUserAsync(value);
@@ -301,15 +301,22 @@ namespace Application.Applications.Auth
             int? branchId,
             bool isCustomer)
         {
-            var jwtKey = _configuration["Jwt:Key"]
-                         ?? "RestaurantApp-Development-Only-Replace-With-Secret-32Chars";
+            var jwtKey = _configuration["Jwt:Key"];
+            var issuer = _configuration["Jwt:Issuer"];
+            var audience = _configuration["Jwt:Audience"];
 
-            var issuer = _configuration["Jwt:Issuer"] ?? "RestaurantApp";
-            var audience = _configuration["Jwt:Audience"] ?? "RestaurantAppUsers";
+            if (string.IsNullOrWhiteSpace(jwtKey) ||
+                string.IsNullOrWhiteSpace(issuer) ||
+                string.IsNullOrWhiteSpace(audience))
+            {
+                throw new InvalidOperationException("JWT settings are not configured correctly in appsettings.json.");
+            }
+
             var expiryMinutes = Convert.ToInt32(
-                _configuration["Jwt:ExpiryMinutes"] ?? "60");
+                _configuration["Jwt:ExpiryInMinutes"] ?? "60");
+
             var refreshTokenDays = Convert.ToInt32(
-                _configuration["Jwt:RefreshTokenExpiryDays"] ?? "7");
+                _configuration["Jwt:RefreshTokenExpiryInDays"] ?? "7");
 
             var expiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes);
             var refreshTokenExpiresAt = DateTime.UtcNow.AddDays(refreshTokenDays);
