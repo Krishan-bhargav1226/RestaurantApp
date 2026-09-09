@@ -26,7 +26,7 @@ using Infrastructure.Repositories.Tables;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -51,19 +51,9 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Enter JWT token. Example: Bearer {your token}"
     });
 
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            Array.Empty<string>()
-        }
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
 
@@ -102,8 +92,16 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 
 builder.Services.AddAutoMapper(cfg => { }, typeof(BranchProfile).Assembly);
 
-var jwtKey = builder.Configuration["Jwt:Key"]
-             ?? "RestaurantApp-Development-Only-Replace-With-Secret-32Chars";
+var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+
+if (string.IsNullOrWhiteSpace(jwtKey) ||
+    string.IsNullOrWhiteSpace(jwtIssuer) ||
+    string.IsNullOrWhiteSpace(jwtAudience))
+{
+    throw new InvalidOperationException("JWT settings are not configured correctly in appsettings.json.");
+}
 
 var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
 
@@ -115,9 +113,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = signingKey,
             ValidateIssuer = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "RestaurantApp",
+            ValidIssuer = jwtIssuer,
             ValidateAudience = true,
-            ValidAudience = builder.Configuration["Jwt:Audience"] ?? "RestaurantAppUsers",
+            ValidAudience = jwtAudience,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
