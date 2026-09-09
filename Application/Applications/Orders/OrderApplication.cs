@@ -66,18 +66,22 @@ public class OrderApplication : IOrderApplication
     private async Task<Branch> ValidateInputAsync(CreateUpdateOrderDto input)
     {
         var branch = await _branchRepository.GetByIdAsync(input.BranchId) ?? throw new KeyNotFoundException("Branch not found.");
+
         if (input.OrderType == Domain.Entities.Enums.OrderType.DineIn)
         {
             if (!input.TableId.HasValue) throw new InvalidOperationException("TableId is required for dine-in orders.");
             if (!branch.AcceptsDineIn) throw new InvalidOperationException("This branch does not accept dine-in orders.");
             var table = await _tableRepository.GetByIdAsync(input.TableId.Value);
-            if (table == null || table.BranchId != input.BranchId || !table.IsActive) throw new InvalidOperationException("The selected table is invalid for this branch.");
+            if (table == null || table.BranchId != input.BranchId || !table.IsActive)
+                throw new InvalidOperationException("The selected table is invalid for this branch.");
         }
-        if (input.OrderType == Domain.Entities.Enums.OrderType.Delivery)
-        {
-            if (!input.AddressId.HasValue) throw new InvalidOperationException("AddressId is required for delivery orders.");
-            if (!branch.AcceptsDelivery) throw new InvalidOperationException("This branch does not accept delivery orders.");
-        }
+
+        if (input.OrderType == Domain.Entities.Enums.OrderType.Delivery && !branch.AcceptsDelivery)
+            throw new InvalidOperationException("This branch does not accept delivery orders.");
+
+        if (input.OrderType != Domain.Entities.Enums.OrderType.DineIn)
+            input.TableId = null;
+
         if (input.Items.Count == 0) throw new InvalidOperationException("At least one order item is required.");
         return branch;
     }
