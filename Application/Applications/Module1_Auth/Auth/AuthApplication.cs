@@ -87,6 +87,35 @@ namespace Application.Applications.Auth
             return response;
         }
 
+        public async Task<string> GenerateRegistrationOtpAsync(string phoneOrEmail)
+        {
+            var value = phoneOrEmail.Trim().ToLower();
+
+            var user = await _authRepository.GetUserAsync(value);
+            var customer = user == null
+                ? await _authRepository.GetCustomerAsync(value)
+                : null;
+
+            if (user == null && customer == null)
+            {
+                throw new KeyNotFoundException("User or customer not found.");
+            }
+
+            var otp = GenerateOtp();
+
+            var resetOtp = new PasswordResetOTP
+            {
+                PhoneOrEmail = value,
+                OTPHash = HashToken(otp),
+                ExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                IsUsed = false
+            };
+
+            await _authRepository.CreatePasswordResetOTPAsync(resetOtp);
+
+            return otp;
+        }
+
         public async Task<AuthResponseDto> LoginAsync(LoginDto input)
         {
             var loginValue = input.EmailOrPhone.Trim().ToLower();
@@ -155,9 +184,7 @@ namespace Application.Applications.Auth
                 throw new KeyNotFoundException("User or customer not found.");
             }
 
-            var otp = RandomNumberGenerator
-                .GetInt32(100000, 1000000)
-                .ToString();
+            var otp = GenerateOtp();
 
             var resetOtp = new PasswordResetOTP
             {
@@ -354,6 +381,13 @@ namespace Application.Applications.Auth
             response.RefreshToken = GenerateRefreshToken();
             response.ExpiresAt = expiresAt;
             response.RefreshTokenExpiresAt = refreshTokenExpiresAt;
+        }
+
+        private static string GenerateOtp()
+        {
+            return RandomNumberGenerator
+                .GetInt32(100000, 1000000)
+                .ToString();
         }
 
         private static string GenerateRefreshToken()
