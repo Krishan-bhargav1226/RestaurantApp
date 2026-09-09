@@ -7,9 +7,7 @@ public class OrderResponseDto
 {
     public int Id { get; set; }
     public int BranchId { get; set; }
-    public int? CustomerId { get; set; }
     public int? TableId { get; set; }
-    public int? AddressId { get; set; }
     public OrderType OrderType { get; set; }
     public string? TableNumber { get; set; }
     public OrderStatus Status { get; set; }
