@@ -10,7 +10,7 @@ public class AuthResponseDto
     public string Phone { get; set; } = string.Empty;
     public string Token { get; set; } = string.Empty;
     public DateTime ExpiresAt { get; set; }
-    public UserRole Role { get; set; }
+    public UserRole? Role { get; set; }
     public int? BranchId { get; set; }
     public bool IsCustomer { get; set; }
 }
