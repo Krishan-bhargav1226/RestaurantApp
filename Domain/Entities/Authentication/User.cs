@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using Domain.Entities.Enums;
 
 namespace Domain.Entities
 {
-    public class Customer : BaseEntity
+    public class User : BaseEntity
     {
         [Required]
         [MaxLength(150)]
@@ -23,14 +24,13 @@ namespace Domain.Entities
         [MaxLength(500)]
         public string? ProfileImagePath { get; set; }
 
-        public int LoyaltyPoints { get; set; }
+        [Required]
+        public UserRole Role { get; set; } = UserRole.Staff;
 
-        public bool IsVerified { get; set; } = true;
+        public int? BranchId { get; set; }
 
         public string? RefreshTokenHash { get; set; }
 
         public DateTime? RefreshTokenExpiry { get; set; }
-
-        public ICollection<CustomerAddress> Addresses { get; set; } = new List<CustomerAddress>();
     }
 }

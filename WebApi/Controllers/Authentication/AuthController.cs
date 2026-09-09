@@ -27,21 +27,13 @@ namespace WebApi.Controllers
             {
                 var result = await _authApplication.RegisterUserAsync(input);
                 var otp = await _authApplication.GenerateRegistrationOtpAsync(result.Email);
+
                 await SendRegistrationOtpEmailAsync(result.Email, result.FullName, otp);
 
                 return Ok(new
                 {
                     message = "Registration successful. OTP has been sent to your email.",
-                    data = new
-                    {
-                        result.Id,
-                        result.FullName,
-                        result.Email,
-                        result.Phone,
-                        result.Role,
-                        result.BranchId,
-                        result.IsCustomer
-                    }
+                    data = result
                 });
             }
             catch (Exception ex)
@@ -57,37 +49,13 @@ namespace WebApi.Controllers
             {
                 var result = await _authApplication.RegisterCustomerAsync(input);
                 var otp = await _authApplication.GenerateRegistrationOtpAsync(result.Email);
+
                 await SendRegistrationOtpEmailAsync(result.Email, result.FullName, otp);
 
                 return Ok(new
                 {
                     message = "Registration successful. OTP has been sent to your email.",
-                    data = new
-                    {
-                        result.Id,
-                        result.FullName,
-                        result.Email,
-                        result.Phone,
-                        result.IsCustomer
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
-        }
-
-        [HttpPost("verify-registration-otp")]
-        public async Task<IActionResult> VerifyRegistrationOtp(VerifyRegistrationOtpDto input)
-        {
-            try
-            {
-                await _authApplication.VerifyRegistrationOtpAsync(input);
-
-                return Ok(new
-                {
-                    message = "Registration OTP verified successfully. You can now login."
+                    data = result
                 });
             }
             catch (Exception ex)
@@ -125,6 +93,7 @@ namespace WebApi.Controllers
             try
             {
                 var result = await _authApplication.RefreshTokenAsync(input);
+
                 return Ok(result);
             }
             catch (UnauthorizedAccessException ex)
@@ -148,6 +117,7 @@ namespace WebApi.Controllers
                 }
 
                 var otp = await _authApplication.ForgotPasswordAsync(input.PhoneOrEmail);
+
                 var subject = "RestaurantApp Password Reset OTP";
                 var body = $@"
                     <html>
@@ -160,6 +130,7 @@ namespace WebApi.Controllers
                     </html>";
 
                 await _emailService.SendEmailAsync(input.PhoneOrEmail, subject, body);
+
                 return Ok("OTP has been sent to your email.");
             }
             catch (Exception ex)
@@ -174,6 +145,7 @@ namespace WebApi.Controllers
             try
             {
                 await _authApplication.ResetPasswordAsync(input);
+
                 return Ok("Password has been reset successfully.");
             }
             catch (Exception ex)
@@ -182,7 +154,10 @@ namespace WebApi.Controllers
             }
         }
 
-        private async Task SendRegistrationOtpEmailAsync(string email, string fullName, string otp)
+        private async Task SendRegistrationOtpEmailAsync(
+            string email,
+            string fullName,
+            string otp)
         {
             var subject = "RestaurantApp Registration OTP";
             var body = $@"
