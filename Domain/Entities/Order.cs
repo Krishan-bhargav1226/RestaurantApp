@@ -6,9 +6,7 @@ namespace Domain.Entities;
 public class Order : BaseEntity
 {
     [Required] public int BranchId { get; set; }
-    public int? CustomerId { get; set; }
     public int? TableId { get; set; }
-    public int? AddressId { get; set; }
     [Required] public OrderType OrderType { get; set; }
     [MaxLength(20)] public string? TableNumber { get; set; }
     [Required] public OrderStatus Status { get; set; } = OrderStatus.Pending;
