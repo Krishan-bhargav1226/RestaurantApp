@@ -3,6 +3,7 @@ using Application.Applications.Categories;
 using Application.Applications.Products;
 using Application.Applications.BranchProducts;
 using Application.Applications.Ingredients;
+using Application.Applications.RecipeIngredients;
 using Application.Common.Mapping;
 using Infrastructure;
 using Infrastructure.Repositories.Branches;
@@ -10,6 +11,7 @@ using Infrastructure.Repositories.Categories;
 using Infrastructure.Repositories.Products;
 using Infrastructure.Repositories.BranchProducts;
 using Infrastructure.Repositories.Ingredients;
+using Infrastructure.Repositories.RecipeIngredients;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,6 +36,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IBranchProductRepository, BranchProductRepository>();
 builder.Services.AddScoped<IIngredientRepository, IngredientRepository>();
+builder.Services.AddScoped<IRecipeIngredientRepository, RecipeIngredientRepository>();
 
 // Application Services
 builder.Services.AddScoped<IBranchApplication, BranchApplication>();
@@ -41,6 +44,7 @@ builder.Services.AddScoped<ICategoryApplication, CategoryApplication>();
 builder.Services.AddScoped<IProductApplication, ProductApplication>();
 builder.Services.AddScoped<IBranchProductApplication, BranchProductApplication>();
 builder.Services.AddScoped<IIngredientApplication, IngredientApplication>();
+builder.Services.AddScoped<IRecipeIngredientApplication, RecipeIngredientApplication>();
 
 // AutoMapper
 builder.Services.AddAutoMapper(cfg =>
