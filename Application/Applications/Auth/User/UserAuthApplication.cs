@@ -1,4 +1,4 @@
-using Application.Applications.Auth.Shared;
+using Application.Applications.Auth;
 using Application.Dtos.Auth.User;
 using Domain.Entities;
 using Infrastructure.Repositories.Auth;
