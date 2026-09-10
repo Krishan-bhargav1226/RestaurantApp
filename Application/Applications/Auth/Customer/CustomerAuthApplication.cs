@@ -1,4 +1,4 @@
-using Application.Applications.Auth.Shared;
+using Application.Applications.Auth;
 using Application.Dtos.Auth.Customer;
 using Infrastructure.Repositories.Auth;
 using Microsoft.Extensions.Configuration;
