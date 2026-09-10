@@ -32,5 +32,7 @@ namespace Domain.Entities
         public string? RefreshTokenHash { get; set; }
 
         public DateTime? RefreshTokenExpiry { get; set; }
+
+        public bool IsEmailVerified { get; set; } = false;
     }
 }
