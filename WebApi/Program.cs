@@ -1,5 +1,6 @@
 using System.Text;
-using Application.Applications.Auth;
+using Application.Applications.Auth.Customer;
+using Application.Applications.Auth.User;
 using Application.Applications.BranchProducts;
 using Application.Applications.Branches;
 using Application.Applications.Categories;
@@ -24,9 +25,8 @@ using Infrastructure.Repositories.Ingredients;
 using Infrastructure.Repositories.Orders;
 using Infrastructure.Repositories.Products;
 using Infrastructure.Repositories.RecipeIngredients;
-using Infrastructure.Repositories.TableStatusHistories;
 using Infrastructure.Repositories.Tables;
-using Infrastructure.Repositories.Users;
+using Infrastructure.Repositories.TableStatusHistories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -90,7 +90,8 @@ builder.Services.AddScoped<IRecipeIngredientApplication, RecipeIngredientApplica
 builder.Services.AddScoped<ITableApplication, TableApplication>();
 builder.Services.AddScoped<ITableStatusHistoryApplication, TableStatusHistoryApplication>();
 builder.Services.AddScoped<IOrderApplication, OrderApplication>();
-builder.Services.AddScoped<IAuthApplication, AuthApplication>();
+builder.Services.AddScoped<IUserAuthApplication, UserAuthApplication>();
+builder.Services.AddScoped<ICustomerAuthApplication, CustomerAuthApplication>();
 builder.Services.AddScoped<ICustomerAddressApplication, CustomerAddressApplication>();
 builder.Services.AddScoped<IUserApplication, UserApplication>();
 builder.Services.AddScoped<ICustomerApplication, CustomerApplication>();
