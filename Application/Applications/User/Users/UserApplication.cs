@@ -1,5 +1,6 @@
-using Application.Dtos.Users;
+using System.Security.Cryptography;
 using Application.DTOs.Users;
+using Application.Dtos.Users;
 using AutoMapper;
 using Domain.Entities;
 using Infrastructure.Repositories.Users;
@@ -19,9 +20,14 @@ public class UserApplication : IUserApplication
 
     public async Task<UserResponseDto> CreateAsync(CreateUpdateUserDto input)
     {
+        if (string.IsNullOrWhiteSpace(input.Password))
+            throw new InvalidOperationException("Password is required when creating a user.");
+
         var user = _mapper.Map<User>(input);
         user.Email = user.Email.Trim().ToLowerInvariant();
-        user.Phone = user.Phone.Trim();
+        user.Phone = string.IsNullOrWhiteSpace(user.Phone) ? null : user.Phone.Trim();
+        user.PasswordHash = HashPassword(input.Password);
+        user.IsEmailVerified = false;
 
         var createdUser = await _userRepository.CreateAsync(user);
         return _mapper.Map<UserResponseDto>(createdUser);
@@ -52,7 +58,15 @@ public class UserApplication : IUserApplication
 
         _mapper.Map(input, user);
         user.Email = user.Email.Trim().ToLowerInvariant();
-        user.Phone = user.Phone.Trim();
+        user.Phone = string.IsNullOrWhiteSpace(user.Phone) ? null : user.Phone.Trim();
+
+        if (!string.IsNullOrWhiteSpace(input.Password))
+        {
+            user.PasswordHash = HashPassword(input.Password);
+            user.RefreshTokenHash = null;
+            user.RefreshTokenExpiry = null;
+        }
+
         user.UpdatedDate = DateTime.UtcNow;
 
         var updatedUser = await _userRepository.UpdateAsync(user);
@@ -67,5 +81,12 @@ public class UserApplication : IUserApplication
             throw new KeyNotFoundException("User not found.");
 
         await _userRepository.DeleteAsync(user);
+    }
+
+    private static string HashPassword(string password)
+    {
+        var salt = RandomNumberGenerator.GetBytes(16);
+        var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, 100000, HashAlgorithmName.SHA256, 32);
+        return $"100000.{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
     }
 }

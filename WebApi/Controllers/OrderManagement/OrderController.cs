@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Application.Applications.Orders;
 using Application.Dtos.Orders;
 using Microsoft.AspNetCore.Authorization;
@@ -20,29 +21,27 @@ namespace WebApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(CreateUpdateOrderDto input)
         {
-            var result = await _orderApplication.CreateAsync(input);
-            return Ok(result);
+            input.CreatedByUserId = GetAuthenticatedUserId();
+            return Ok(await _orderApplication.CreateAsync(input));
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var result = await _orderApplication.GetAllAsync();
-            return Ok(result);
+            return Ok(await _orderApplication.GetAllAsync());
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var result = await _orderApplication.GetByIdAsync(id);
-            return Ok(result);
+            return Ok(await _orderApplication.GetByIdAsync(id));
         }
 
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateUpdateOrderDto input)
         {
-            var result = await _orderApplication.UpdateAsync(id, input);
-            return Ok(result);
+            input.CreatedByUserId = GetAuthenticatedUserId();
+            return Ok(await _orderApplication.UpdateAsync(id, input));
         }
 
         [HttpDelete("{id:int}")]
@@ -50,6 +49,16 @@ namespace WebApi.Controllers
         {
             await _orderApplication.DeleteAsync(id);
             return NoContent();
+        }
+
+        private int GetAuthenticatedUserId()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userId, out var id) || id <= 0)
+                throw new UnauthorizedAccessException("Authenticated user identity is invalid.");
+
+            return id;
         }
     }
 }

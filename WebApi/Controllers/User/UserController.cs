@@ -20,6 +20,9 @@ public class UserController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create(CreateUpdateUserDto input)
     {
+        if (User.IsInRole("BranchAdmin") && input.Role == Domain.Entities.Enums.UserRole.SuperAdmin)
+            return Forbid();
+
         var result = await _userApplication.CreateAsync(input);
         return Ok(result);
     }
@@ -27,20 +30,21 @@ public class UserController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var result = await _userApplication.GetAllAsync();
-        return Ok(result);
+        return Ok(await _userApplication.GetAllAsync());
     }
 
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var result = await _userApplication.GetByIdAsync(id);
-        return Ok(result);
+        return Ok(await _userApplication.GetByIdAsync(id));
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, [FromBody] CreateUpdateUserDto input)
     {
+        if (User.IsInRole("BranchAdmin") && input.Role == Domain.Entities.Enums.UserRole.SuperAdmin)
+            return Forbid();
+
         var result = await _userApplication.UpdateAsync(id, input);
         return Ok(result);
     }

@@ -9,7 +9,7 @@ public interface IUserAuthApplication
     Task<UserRegistrationResponseDto> VerifyRegistrationOtpAsync(VerifyUserOtpDto input);
     Task<UserAuthResponseDto> LoginAsync(LoginUserDto input);
     Task<UserAuthResponseDto> RefreshTokenAsync(RefreshUserTokenDto input);
-    Task<string> ForgotPasswordAsync(string email);
+    Task<string?> ForgotPasswordAsync(string email);
     Task ResetPasswordAsync(ResetUserPasswordDto input);
     Task<UserRegistrationResponseDto> AssignRoleAsync(int userId, AssignRoleDto input);
 }

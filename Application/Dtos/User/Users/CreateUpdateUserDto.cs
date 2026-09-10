@@ -14,10 +14,9 @@ public class CreateUpdateUserDto
     [EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
     [MaxLength(20)]
     [Phone]
-    public string Phone { get; set; } = string.Empty;
+    public string? Phone { get; set; }
 
     [MaxLength(500)]
     public string? ProfileImagePath { get; set; }
@@ -28,4 +27,7 @@ public class CreateUpdateUserDto
     public int? BranchId { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    [MaxLength(100)]
+    public string? Password { get; set; }
 }

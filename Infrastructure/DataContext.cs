@@ -5,8 +5,7 @@ namespace Infrastructure
 {
     public class DataContext : DbContext
     {
-        public DataContext(DbContextOptions<DataContext> options)
-            : base(options)
+        public DataContext(DbContextOptions<DataContext> options) : base(options)
         {
         }
 
@@ -30,7 +29,7 @@ namespace Infrastructure
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Product>()
-                .HasOne(x => x.Category)
+                .HasOne<Category>()
                 .WithMany()
                 .HasForeignKey(x => x.CategoryId)
                 .OnDelete(DeleteBehavior.Restrict);
@@ -163,43 +162,30 @@ namespace Infrastructure
 
             modelBuilder.Entity<Branch>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<Category>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<Product>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<BranchProduct>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<Ingredient>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<RecipeIngredient>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<Table>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<TableStatusHistory>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<Order>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<OrderItem>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<User>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<Customer>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<CustomerAddress>()
                 .HasQueryFilter(x => !x.IsDeleted);
-
             modelBuilder.Entity<PasswordResetOTP>()
                 .HasQueryFilter(x => !x.IsDeleted);
         }

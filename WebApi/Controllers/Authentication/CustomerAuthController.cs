@@ -23,110 +23,62 @@ public class CustomerAuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterCustomerDto input)
     {
-        try
-        {
-            var result = await _customerAuthApplication.RegisterAsync(input);
-            var otp = await _customerAuthApplication.GenerateRegistrationOtpAsync(result.Email);
-            await SendRegistrationOtpEmailAsync(result.Email, result.FullName, otp);
+        var result = await _customerAuthApplication.RegisterAsync(input);
+        var otp = await _customerAuthApplication.GenerateRegistrationOtpAsync(result.Email);
+        await SendRegistrationOtpEmailAsync(result.Email, result.FullName, otp);
 
-            return Ok(new
-            {
-                message = "Registration successful. OTP has been sent to your email.",
-                data = result
-            });
-        }
-        catch (Exception ex)
+        return Ok(new
         {
-            return BadRequest(ex.Message);
-        }
+            message = "Registration successful. OTP has been sent to your email.",
+            data = result
+        });
     }
 
     [AllowAnonymous]
     [HttpPost("verify-registration-otp")]
     public async Task<IActionResult> VerifyRegistrationOtp(VerifyCustomerOtpDto input)
     {
-        try
+        var result = await _customerAuthApplication.VerifyRegistrationOtpAsync(input);
+
+        return Ok(new
         {
-            var result = await _customerAuthApplication.VerifyRegistrationOtpAsync(input);
-            return Ok(new
-            {
-                message = "Email verified successfully. Registration is complete. Please login to receive an access token.",
-                data = result
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+            message = "Email verified successfully. Registration is complete. Please login to receive an access token.",
+            data = result
+        });
     }
 
     [AllowAnonymous]
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginCustomerDto input)
     {
-        try
-        {
-            var result = await _customerAuthApplication.LoginAsync(input);
-            return Ok(new { message = "Login successful", data = result });
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(new { error = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var result = await _customerAuthApplication.LoginAsync(input);
+        return Ok(new { message = "Login successful", data = result });
     }
 
     [AllowAnonymous]
     [HttpPost("refresh-token")]
     public async Task<IActionResult> RefreshToken(RefreshCustomerTokenDto input)
     {
-        try
-        {
-            return Ok(await _customerAuthApplication.RefreshTokenAsync(input));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return Unauthorized(new { error = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        return Ok(await _customerAuthApplication.RefreshTokenAsync(input));
     }
 
     [AllowAnonymous]
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword(ForgotCustomerPasswordDto input)
     {
-        try
-        {
-            var otp = await _customerAuthApplication.ForgotPasswordAsync(input.Email);
-            var body = $"<html><body style='font-family:Arial,sans-serif;'><h3>Password Reset</h3><p>Your RestaurantApp password reset OTP is:</p><h2>{otp}</h2><p>This OTP will expire in 10 minutes.</p></body></html>";
-            await _emailService.SendEmailAsync(input.Email, "RestaurantApp Password Reset OTP", body);
-            return Ok("OTP has been sent to your email.");
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        var otp = await _customerAuthApplication.ForgotPasswordAsync(input.Email);
+        var body = $"<html><body style='font-family:Arial,sans-serif;'><h3>Password Reset</h3><p>Your RestaurantApp password reset OTP is:</p><h2>{otp}</h2><p>This OTP will expire in 10 minutes.</p></body></html>";
+        await _emailService.SendEmailAsync(input.Email, "RestaurantApp Password Reset OTP", body);
+
+        return Ok(new { message = "OTP has been sent to your email." });
     }
 
     [AllowAnonymous]
     [HttpPost("reset-password")]
     public async Task<IActionResult> ResetPassword(ResetCustomerPasswordDto input)
     {
-        try
-        {
-            await _customerAuthApplication.ResetPasswordAsync(input);
-            return Ok("Password has been reset successfully.");
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
+        await _customerAuthApplication.ResetPasswordAsync(input);
+        return Ok(new { message = "Password has been reset successfully." });
     }
 
     private async Task SendRegistrationOtpEmailAsync(string email, string fullName, string otp)
