@@ -31,6 +31,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using WebApi.ExceptionHandling;
 using WebApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -60,9 +61,14 @@ builder.Services.AddSwaggerGen(options =>
         [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 });
+
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException("DefaultConnection is not configured.");
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlServer(connectionString));
@@ -108,7 +114,7 @@ if (string.IsNullOrWhiteSpace(jwtKey) ||
     string.IsNullOrWhiteSpace(jwtIssuer) ||
     string.IsNullOrWhiteSpace(jwtAudience))
 {
-    throw new InvalidOperationException("JWT settings are not configured correctly in appsettings.json.");
+    throw new InvalidOperationException("JWT settings are not configured correctly.");
 }
 
 var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
