@@ -12,14 +12,19 @@ namespace Infrastructure.Repositories.Auth
             _context = context;
         }
 
-        public async Task<User?> GetUserAsync(string emailOrPhone)
+        public async Task<User?> GetUserAsync(string email)
         {
-            return await _context.Users.FirstOrDefaultAsync(x => x.IsActive && (x.Email == emailOrPhone || x.Phone == emailOrPhone));
+            return await _context.Users.FirstOrDefaultAsync(x => x.IsActive && x.Email == email);
         }
 
-        public async Task<Customer?> GetCustomerAsync(string emailOrPhone)
+        public async Task<Customer?> GetCustomerAsync(string email)
         {
-            return await _context.Customers.FirstOrDefaultAsync(x => x.IsActive && (x.Email == emailOrPhone || x.Phone == emailOrPhone));
+            return await _context.Customers.FirstOrDefaultAsync(x => x.IsActive && x.Email == email);
+        }
+
+        public async Task<User?> GetUserByIdAsync(int id)
+        {
+            return await _context.Users.FirstOrDefaultAsync(x => x.IsActive && x.Id == id);
         }
 
         public async Task<User?> GetUserByRefreshTokenAsync(string refreshTokenHash)
@@ -53,10 +58,10 @@ namespace Infrastructure.Repositories.Auth
             return resetOtp;
         }
 
-        public async Task<PasswordResetOTP?> GetPasswordResetOTPAsync(string phoneOrEmail, string otpHash, string purpose)
+        public async Task<PasswordResetOTP?> GetPasswordResetOTPAsync(string email, string otpHash, string purpose)
         {
             return await _context.PasswordResetOTPs
-                .Where(x => x.PhoneOrEmail == phoneOrEmail && x.OTPHash == otpHash && x.Purpose == purpose && !x.IsUsed)
+                .Where(x => x.PhoneOrEmail == email && x.OTPHash == otpHash && x.Purpose == purpose && !x.IsUsed)
                 .OrderByDescending(x => x.CreatedDate)
                 .FirstOrDefaultAsync();
         }
