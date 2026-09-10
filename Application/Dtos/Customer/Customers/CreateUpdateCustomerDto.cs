@@ -13,15 +13,18 @@ public class CreateUpdateCustomerDto
     [EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required]
     [MaxLength(20)]
     [Phone]
-    public string Phone { get; set; } = string.Empty;
+    public string? Phone { get; set; }
 
     [MaxLength(500)]
     public string? ProfileImagePath { get; set; }
 
+    [Range(0, int.MaxValue)]
     public int LoyaltyPoints { get; set; }
 
     public bool IsActive { get; set; } = true;
+
+    [MaxLength(100)]
+    public string? Password { get; set; }
 }
