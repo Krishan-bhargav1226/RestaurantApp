@@ -39,7 +39,6 @@ public class UserAuthController : ControllerBase
     public async Task<IActionResult> VerifyRegistrationOtp(VerifyUserOtpDto input)
     {
         var result = await _userAuthApplication.VerifyRegistrationOtpAsync(input);
-
         return Ok(new
         {
             message = "Email verified successfully. Registration is complete. Please login to receive an access token.",
@@ -85,6 +84,9 @@ public class UserAuthController : ControllerBase
     [HttpPut("{userId:int}/assign-role")]
     public async Task<IActionResult> AssignRole(int userId, AssignRoleDto input)
     {
+        if (User.IsInRole("BranchAdmin") && input.Role == Domain.Entities.Enums.UserRole.SuperAdmin)
+            return Forbid();
+
         var result = await _userAuthApplication.AssignRoleAsync(userId, input);
         return Ok(new { message = "User role updated successfully.", data = result });
     }
