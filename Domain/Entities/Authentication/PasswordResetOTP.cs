@@ -9,6 +9,10 @@ namespace Domain.Entities
         public string PhoneOrEmail { get; set; } = string.Empty;
 
         [Required]
+        [MaxLength(30)]
+        public string Purpose { get; set; } = string.Empty;
+
+        [Required]
         public string OTPHash { get; set; } = string.Empty;
 
         public DateTime ExpiresAt { get; set; }
