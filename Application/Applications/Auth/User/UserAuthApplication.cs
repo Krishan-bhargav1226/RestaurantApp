@@ -1,6 +1,7 @@
 using Application.Applications.Auth;
 using Application.Dtos.Auth.User;
-using Domain.Entities;
+using DomainUser = Domain.Entities.User;
+using DomainPasswordResetOTP = Domain.Entities.PasswordResetOTP;
 using Infrastructure.Repositories.Auth;
 using Microsoft.Extensions.Configuration;
 
@@ -25,7 +26,7 @@ public class UserAuthApplication : IUserAuthApplication
         if (await _authRepository.GetUserAsync(email) != null)
             throw new InvalidOperationException("Email is already registered.");
 
-        var user = new Domain.Entities.User
+        var user = new DomainUser
         {
             FullName = input.FullName.Trim(), Email = email,
             PasswordHash = AuthCryptoHelper.HashPassword(input.Password),
@@ -43,7 +44,7 @@ public class UserAuthApplication : IUserAuthApplication
         if (user.IsEmailVerified) throw new InvalidOperationException("Email is already verified.");
 
         var otp = AuthCryptoHelper.GenerateOtp();
-        await _authRepository.CreatePasswordResetOTPAsync(new PasswordResetOTP
+        await _authRepository.CreatePasswordResetOTPAsync(new DomainPasswordResetOTP
         {
             PhoneOrEmail = normalizedEmail, Purpose = RegistrationOtpPurpose,
             OTPHash = AuthCryptoHelper.HashToken(otp), ExpiresAt = DateTime.UtcNow.AddMinutes(10), IsUsed = false
@@ -101,7 +102,7 @@ public class UserAuthApplication : IUserAuthApplication
         if (user == null) throw new KeyNotFoundException("User not found.");
 
         var otp = AuthCryptoHelper.GenerateOtp();
-        await _authRepository.CreatePasswordResetOTPAsync(new PasswordResetOTP
+        await _authRepository.CreatePasswordResetOTPAsync(new DomainPasswordResetOTP
         {
             PhoneOrEmail = normalizedEmail, Purpose = PasswordResetOtpPurpose,
             OTPHash = AuthCryptoHelper.HashToken(otp), ExpiresAt = DateTime.UtcNow.AddMinutes(10), IsUsed = false
@@ -136,13 +137,13 @@ public class UserAuthApplication : IUserAuthApplication
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
-    private static UserRegistrationResponseDto CreateRegistrationResponse(Domain.Entities.User user) => new()
+    private static UserRegistrationResponseDto CreateRegistrationResponse(DomainUser user) => new()
     {
         Id = user.Id, FullName = user.FullName, Email = user.Email,
         Role = user.Role, IsEmailVerified = user.IsEmailVerified
     };
 
-    private UserAuthResponseDto CreateAuthResponse(Domain.Entities.User user)
+    private UserAuthResponseDto CreateAuthResponse(DomainUser user)
     {
         var response = new UserAuthResponseDto
         {
@@ -155,7 +156,7 @@ public class UserAuthApplication : IUserAuthApplication
         return response;
     }
 
-    private async Task SaveRefreshTokenAsync(Domain.Entities.User user, UserAuthResponseDto response)
+    private async Task SaveRefreshTokenAsync(DomainUser user, UserAuthResponseDto response)
     {
         user.RefreshTokenHash = AuthCryptoHelper.HashToken(response.RefreshToken);
         user.RefreshTokenExpiry = response.RefreshTokenExpiresAt; user.UpdatedDate = DateTime.UtcNow;
