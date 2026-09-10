@@ -12,9 +12,7 @@ namespace WebApi.Controllers
         private readonly IAuthApplication _authApplication;
         private readonly IEmailService _emailService;
 
-        public AuthController(
-            IAuthApplication authApplication,
-            IEmailService emailService)
+        public AuthController(IAuthApplication authApplication, IEmailService emailService)
         {
             _authApplication = authApplication;
             _emailService = emailService;
@@ -27,19 +25,10 @@ namespace WebApi.Controllers
             {
                 var result = await _authApplication.RegisterUserAsync(input);
                 var otp = await _authApplication.GenerateRegistrationOtpAsync(result.Email);
-
                 await SendRegistrationOtpEmailAsync(result.Email, result.FullName, otp);
-
-                return Ok(new
-                {
-                    message = "Registration successful. OTP has been sent to your email.",
-                    data = result
-                });
+                return Ok(new { message = "Registration successful. OTP has been sent to your email.", data = result });
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
         [HttpPost("register-customer")]
@@ -49,19 +38,34 @@ namespace WebApi.Controllers
             {
                 var result = await _authApplication.RegisterCustomerAsync(input);
                 var otp = await _authApplication.GenerateRegistrationOtpAsync(result.Email);
-
                 await SendRegistrationOtpEmailAsync(result.Email, result.FullName, otp);
+                return Ok(new { message = "Registration successful. OTP has been sent to your email.", data = result });
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
 
-                return Ok(new
-                {
-                    message = "Registration successful. OTP has been sent to your email.",
-                    data = result
-                });
-            }
-            catch (Exception ex)
+        [HttpPost("verify-registration-otp")]
+        public async Task<IActionResult> VerifyRegistrationOtp(VerifyRegistrationOtpDto input)
+        {
+            try
             {
-                return BadRequest(ex.Message);
+                var result = await _authApplication.VerifyRegistrationOtpAsync(input);
+                return Ok(new { message = "Email verified successfully. Registration is complete.", data = result });
             }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpPost("resend-registration-otp")]
+        public async Task<IActionResult> ResendRegistrationOtp([FromBody] string phoneOrEmail)
+        {
+            try
+            {
+                var value = phoneOrEmail.Trim().ToLowerInvariant();
+                var otp = await _authApplication.GenerateRegistrationOtpAsync(value);
+                await SendRegistrationOtpEmailAsync(value, "there", otp);
+                return Ok("A new registration OTP has been sent to your email.");
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
         [HttpPost("login")]
@@ -70,40 +74,18 @@ namespace WebApi.Controllers
             try
             {
                 var result = await _authApplication.LoginAsync(input);
-
-                return Ok(new
-                {
-                    message = "Login successful",
-                    data = result
-                });
+                return Ok(new { message = "Login successful", data = result });
             }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { error = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            catch (UnauthorizedAccessException ex) { return Unauthorized(new { error = ex.Message }); }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken(RefreshTokenDto input)
         {
-            try
-            {
-                var result = await _authApplication.RefreshTokenAsync(input);
-
-                return Ok(result);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { error = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            try { return Ok(await _authApplication.RefreshTokenAsync(input)); }
+            catch (UnauthorizedAccessException ex) { return Unauthorized(new { error = ex.Message }); }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
         [HttpPost("forgot-password")]
@@ -112,65 +94,26 @@ namespace WebApi.Controllers
             try
             {
                 if (!input.PhoneOrEmail.Contains("@"))
-                {
                     return BadRequest("Email based password reset is currently configured. Phone OTP can be added with an SMS service later.");
-                }
-
                 var otp = await _authApplication.ForgotPasswordAsync(input.PhoneOrEmail);
-
-                var subject = "RestaurantApp Password Reset OTP";
-                var body = $@"
-                    <html>
-                    <body style='font-family: Arial, sans-serif;'>
-                        <h3>Password Reset</h3>
-                        <p>Your RestaurantApp password reset OTP is:</p>
-                        <h2>{otp}</h2>
-                        <p>This OTP will expire in 10 minutes.</p>
-                    </body>
-                    </html>";
-
-                await _emailService.SendEmailAsync(input.PhoneOrEmail, subject, body);
-
+                var body = $"<html><body style='font-family:Arial,sans-serif;'><h3>Password Reset</h3><p>Your RestaurantApp password reset OTP is:</p><h2>{otp}</h2><p>This OTP will expire in 10 minutes.</p></body></html>";
+                await _emailService.SendEmailAsync(input.PhoneOrEmail, "RestaurantApp Password Reset OTP", body);
                 return Ok("OTP has been sent to your email.");
             }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword(ResetPasswordDto input)
         {
-            try
-            {
-                await _authApplication.ResetPasswordAsync(input);
-
-                return Ok("Password has been reset successfully.");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            try { await _authApplication.ResetPasswordAsync(input); return Ok("Password has been reset successfully."); }
+            catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
-        private async Task SendRegistrationOtpEmailAsync(
-            string email,
-            string fullName,
-            string otp)
+        private async Task SendRegistrationOtpEmailAsync(string email, string fullName, string otp)
         {
-            var subject = "RestaurantApp Registration OTP";
-            var body = $@"
-                <html>
-                <body style='font-family: Arial, sans-serif;'>
-                    <h3>Welcome to RestaurantApp, {fullName}!</h3>
-                    <p>Your registration OTP is:</p>
-                    <h2>{otp}</h2>
-                    <p>This OTP will expire in 10 minutes.</p>
-                </body>
-                </html>";
-
-            await _emailService.SendEmailAsync(email, subject, body);
+            var body = $"<html><body style='font-family:Arial,sans-serif;'><h3>Welcome to RestaurantApp, {fullName}!</h3><p>Your registration OTP is:</p><h2>{otp}</h2><p>This OTP will expire in 10 minutes.</p><p>If you did not create this account, you can ignore this email.</p></body></html>";
+            await _emailService.SendEmailAsync(email, "RestaurantApp Registration OTP", body);
         }
     }
 }
