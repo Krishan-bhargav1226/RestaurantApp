@@ -15,5 +15,6 @@ namespace Application.Dtos.Auth
         public UserRole? Role { get; set; }
         public int? BranchId { get; set; }
         public bool IsCustomer { get; set; }
+        public bool IsEmailVerified { get; set; }
     }
 }

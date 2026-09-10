@@ -14,43 +14,28 @@ namespace Infrastructure.Repositories.Auth
 
         public async Task<User?> GetUserAsync(string emailOrPhone)
         {
-            return await _context.Users
-                .FirstOrDefaultAsync(x =>
-                    x.IsActive &&
-                    (x.Email == emailOrPhone || x.Phone == emailOrPhone));
+            return await _context.Users.FirstOrDefaultAsync(x => x.IsActive && (x.Email == emailOrPhone || x.Phone == emailOrPhone));
         }
 
         public async Task<Customer?> GetCustomerAsync(string emailOrPhone)
         {
-            return await _context.Customers
-                .FirstOrDefaultAsync(x =>
-                    x.IsActive &&
-                    (x.Email == emailOrPhone || x.Phone == emailOrPhone));
+            return await _context.Customers.FirstOrDefaultAsync(x => x.IsActive && (x.Email == emailOrPhone || x.Phone == emailOrPhone));
         }
 
         public async Task<User?> GetUserByRefreshTokenAsync(string refreshTokenHash)
         {
-            return await _context.Users
-                .FirstOrDefaultAsync(x =>
-                    x.IsActive &&
-                    x.RefreshTokenHash == refreshTokenHash &&
-                    x.RefreshTokenExpiry > DateTime.UtcNow);
+            return await _context.Users.FirstOrDefaultAsync(x => x.IsActive && x.RefreshTokenHash == refreshTokenHash && x.RefreshTokenExpiry > DateTime.UtcNow);
         }
 
         public async Task<Customer?> GetCustomerByRefreshTokenAsync(string refreshTokenHash)
         {
-            return await _context.Customers
-                .FirstOrDefaultAsync(x =>
-                    x.IsActive &&
-                    x.RefreshTokenHash == refreshTokenHash &&
-                    x.RefreshTokenExpiry > DateTime.UtcNow);
+            return await _context.Customers.FirstOrDefaultAsync(x => x.IsActive && x.RefreshTokenHash == refreshTokenHash && x.RefreshTokenExpiry > DateTime.UtcNow);
         }
 
         public async Task<User> CreateUserAsync(User user)
         {
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
-
             return user;
         }
 
@@ -58,7 +43,6 @@ namespace Infrastructure.Repositories.Auth
         {
             _context.Customers.Add(customer);
             await _context.SaveChangesAsync();
-
             return customer;
         }
 
@@ -66,17 +50,13 @@ namespace Infrastructure.Repositories.Auth
         {
             _context.PasswordResetOTPs.Add(resetOtp);
             await _context.SaveChangesAsync();
-
             return resetOtp;
         }
 
-        public async Task<PasswordResetOTP?> GetPasswordResetOTPAsync(string phoneOrEmail, string otpHash)
+        public async Task<PasswordResetOTP?> GetPasswordResetOTPAsync(string phoneOrEmail, string otpHash, string purpose)
         {
             return await _context.PasswordResetOTPs
-                .Where(x =>
-                    x.PhoneOrEmail == phoneOrEmail &&
-                    x.OTPHash == otpHash &&
-                    !x.IsUsed)
+                .Where(x => x.PhoneOrEmail == phoneOrEmail && x.OTPHash == otpHash && x.Purpose == purpose && !x.IsUsed)
                 .OrderByDescending(x => x.CreatedDate)
                 .FirstOrDefaultAsync();
         }
@@ -85,7 +65,6 @@ namespace Infrastructure.Repositories.Auth
         {
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
-
             return user;
         }
 
@@ -93,7 +72,6 @@ namespace Infrastructure.Repositories.Auth
         {
             _context.Customers.Update(customer);
             await _context.SaveChangesAsync();
-
             return customer;
         }
 
@@ -101,7 +79,6 @@ namespace Infrastructure.Repositories.Auth
         {
             _context.PasswordResetOTPs.Update(resetOtp);
             await _context.SaveChangesAsync();
-
             return resetOtp;
         }
     }
