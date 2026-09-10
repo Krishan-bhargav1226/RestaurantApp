@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Application.Applications.TableStatusHistories;
 using Application.Dtos.TableStatusHistories;
 using Microsoft.AspNetCore.Authorization;
@@ -20,6 +21,7 @@ namespace WebApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(CreateUpdateTableStatusHistoryDto input)
         {
+            input.CreatedByUserId = GetAuthenticatedUserId();
             var result = await _tableStatusHistoryApplication.CreateAsync(input);
             return Ok(result);
         }
@@ -41,6 +43,8 @@ namespace WebApi.Controllers
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateUpdateTableStatusHistoryDto input)
         {
+            var existing = await _tableStatusHistoryApplication.GetByIdAsync(id);
+            input.CreatedByUserId = existing.CreatedByUserId;
             var result = await _tableStatusHistoryApplication.UpdateAsync(id, input);
             return Ok(result);
         }
@@ -50,6 +54,16 @@ namespace WebApi.Controllers
         {
             await _tableStatusHistoryApplication.DeleteAsync(id);
             return NoContent();
+        }
+
+        private int GetAuthenticatedUserId()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(userId, out var id) || id <= 0)
+                throw new UnauthorizedAccessException("Authenticated user identity is invalid.");
+
+            return id;
         }
     }
 }
