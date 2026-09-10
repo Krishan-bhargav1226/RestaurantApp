@@ -29,6 +29,8 @@ namespace Domain.Entities
 
         public DateTime? RefreshTokenExpiry { get; set; }
 
+        public bool IsEmailVerified { get; set; } = false;
+
         public ICollection<CustomerAddress> Addresses { get; set; } = new List<CustomerAddress>();
     }
 }
