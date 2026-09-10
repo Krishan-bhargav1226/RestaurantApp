@@ -19,12 +19,7 @@ namespace Application.Applications.Orders
         private readonly DataContext _context;
         private readonly IMapper _mapper;
 
-        public OrderApplication(
-            IOrderRepository orderRepository,
-            IBranchRepository branchRepository,
-            ITableRepository tableRepository,
-            DataContext context,
-            IMapper mapper)
+        public OrderApplication(IOrderRepository orderRepository, IBranchRepository branchRepository, ITableRepository tableRepository, DataContext context, IMapper mapper)
         {
             _orderRepository = orderRepository;
             _branchRepository = branchRepository;
@@ -37,31 +32,24 @@ namespace Application.Applications.Orders
         {
             var branch = await ValidateInputAsync(input);
             var prices = await GetBranchProductPricesAsync(input.BranchId, input.Items);
-
             var order = _mapper.Map<Order>(input);
             order.OrderDate = DateTime.UtcNow;
             order.Status = OrderStatus.Pending;
             order.TableNumber = input.TableNumber;
-
             ApplyServerCalculatedValues(order, input, branch, prices);
-
             foreach (var item in input.Items)
                 order.Items.Add(MapItem(item, prices[item.ProductId]));
-
             return _mapper.Map<OrderResponseDto>(await _orderRepository.CreateAsync(order));
         }
 
-        public async Task<List<OrderResponseDto>> GetAllAsync()
-        {
-            return _mapper.Map<List<OrderResponseDto>>(await _orderRepository.GetAllAsync());
-        }
+        public async Task<List<OrderResponseDto>> GetAllAsync() =>
+            _mapper.Map<List<OrderResponseDto>>(await _orderRepository.GetAllAsync());
 
         public async Task<OrderResponseDto> GetByIdAsync(int id)
         {
             var order = await _orderRepository.GetByIdAsync(id);
             if (order == null)
                 throw new KeyNotFoundException("Order not found.");
-
             return _mapper.Map<OrderResponseDto>(order);
         }
 
@@ -73,7 +61,6 @@ namespace Application.Applications.Orders
 
             var branch = await ValidateInputAsync(input);
             var prices = await GetBranchProductPricesAsync(input.BranchId, input.Items);
-
             _mapper.Map(input, order);
             order.Status = input.Status;
             ApplyServerCalculatedValues(order, input, branch, prices);
@@ -88,7 +75,6 @@ namespace Application.Applications.Orders
                 order.Items.Add(MapItem(item, prices[item.ProductId]));
 
             order.UpdatedDate = DateTime.UtcNow;
-
             return _mapper.Map<OrderResponseDto>(await _orderRepository.UpdateAsync(order));
         }
 
@@ -97,7 +83,6 @@ namespace Application.Applications.Orders
             var order = await _orderRepository.GetByIdAsync(id);
             if (order == null)
                 throw new KeyNotFoundException("Order not found.");
-
             await _orderRepository.DeleteAsync(order);
         }
 
@@ -105,9 +90,14 @@ namespace Application.Applications.Orders
         {
             if (!Enum.IsDefined(input.OrderType))
                 throw new InvalidOperationException("Invalid order type.");
-
+            if (!Enum.IsDefined(input.Status))
+                throw new InvalidOperationException("Invalid order status.");
             if (input.Items == null || input.Items.Count == 0)
                 throw new InvalidOperationException("At least one order item is required.");
+            if (input.Items.Any(x => x.Quantity <= 0))
+                throw new InvalidOperationException("Order item quantity must be greater than zero.");
+            if (input.Items.Any(x => x.ProductId <= 0))
+                throw new InvalidOperationException("A valid ProductId is required for every order item.");
 
             var branch = await _branchRepository.GetByIdAsync(input.BranchId);
             if (branch == null)
@@ -125,7 +115,6 @@ namespace Application.Applications.Orders
                 var addressExists = await _context.CustomerAddresses.AnyAsync(x =>
                     x.Id == input.AddressId.Value &&
                     (!input.CustomerId.HasValue || x.CustomerId == input.CustomerId.Value));
-
                 if (!addressExists)
                     throw new KeyNotFoundException("Customer address not found.");
             }
@@ -134,12 +123,10 @@ namespace Application.Applications.Orders
             {
                 if (!input.TableId.HasValue)
                     throw new InvalidOperationException("TableId is required for dine-in orders.");
-
                 if (!branch.AcceptsDineIn)
                     throw new InvalidOperationException("This branch does not accept dine-in orders.");
 
                 var table = await _tableRepository.GetByIdAsync(input.TableId.Value);
-
                 if (table == null || table.BranchId != input.BranchId || !table.IsActive)
                     throw new InvalidOperationException("The selected table is invalid for this branch.");
 
@@ -157,10 +144,8 @@ namespace Application.Applications.Orders
             {
                 if (!input.CustomerId.HasValue)
                     throw new InvalidOperationException("CustomerId is required for delivery orders.");
-
                 if (!input.AddressId.HasValue)
                     throw new InvalidOperationException("AddressId is required for delivery orders.");
-
                 if (!branch.AcceptsDelivery)
                     throw new InvalidOperationException("This branch does not accept delivery orders.");
             }
@@ -168,43 +153,30 @@ namespace Application.Applications.Orders
             return branch;
         }
 
-        private async Task<Dictionary<int, decimal>> GetBranchProductPricesAsync(
-            int branchId,
-            IReadOnlyCollection<CreateUpdateOrderItemDto> items)
+        private async Task<Dictionary<int, decimal>> GetBranchProductPricesAsync(int branchId, IReadOnlyCollection<CreateUpdateOrderItemDto> items)
         {
             var productIds = items.Select(x => x.ProductId).Distinct().ToList();
-
             var branchProducts = await _context.BranchProducts
                 .Where(x => x.BranchId == branchId && productIds.Contains(x.ProductId) && x.IsAvailable)
                 .Select(x => new { x.ProductId, x.Price })
                 .ToListAsync();
 
             var prices = branchProducts.ToDictionary(x => x.ProductId, x => x.Price);
-
-            var missingProductIds = productIds.Where(id => !prices.ContainsKey(id)).ToList();
-            if (missingProductIds.Count > 0)
+            if (productIds.Any(id => !prices.ContainsKey(id)))
                 throw new InvalidOperationException("One or more selected products are not available at this branch.");
-
             return prices;
         }
 
-        private static OrderItem MapItem(CreateUpdateOrderItemDto input, decimal unitPrice)
+        private static OrderItem MapItem(CreateUpdateOrderItemDto input, decimal unitPrice) => new()
         {
-            return new OrderItem
-            {
-                ProductId = input.ProductId,
-                Quantity = input.Quantity,
-                UnitPrice = unitPrice,
-                TotalPrice = input.Quantity * unitPrice,
-                SpecialInstructions = input.SpecialInstructions
-            };
-        }
+            ProductId = input.ProductId,
+            Quantity = input.Quantity,
+            UnitPrice = unitPrice,
+            TotalPrice = input.Quantity * unitPrice,
+            SpecialInstructions = input.SpecialInstructions
+        };
 
-        private static void ApplyServerCalculatedValues(
-            Order order,
-            CreateUpdateOrderDto input,
-            Branch branch,
-            IReadOnlyDictionary<int, decimal> prices)
+        private static void ApplyServerCalculatedValues(Order order, CreateUpdateOrderDto input, Branch branch, IReadOnlyDictionary<int, decimal> prices)
         {
             var subtotal = input.Items.Sum(x => x.Quantity * prices[x.ProductId]);
             var discount = Math.Min(Math.Max(input.DiscountAmount, 0m), subtotal);
@@ -217,17 +189,10 @@ namespace Application.Applications.Orders
             order.SubTotal = subtotal;
             order.DiscountAmount = discount;
             order.TaxAmount = Math.Round(taxableAmount * taxPercentage / 100m, 2);
-            order.DeliveryCharge = input.OrderType == OrderType.Delivery
-                ? Math.Max(0m, branch.DeliveryCharge ?? 0m)
-                : 0m;
+            order.DeliveryCharge = input.OrderType == OrderType.Delivery ? Math.Max(0m, branch.DeliveryCharge ?? 0m) : 0m;
 
-            if (input.OrderType == OrderType.Delivery &&
-                branch.MinDeliveryOrderAmount.HasValue &&
-                taxableAmount < branch.MinDeliveryOrderAmount.Value)
-            {
-                throw new InvalidOperationException(
-                    $"Minimum delivery order amount is {branch.MinDeliveryOrderAmount.Value:0.00}.");
-            }
+            if (input.OrderType == OrderType.Delivery && branch.MinDeliveryOrderAmount.HasValue && taxableAmount < branch.MinDeliveryOrderAmount.Value)
+                throw new InvalidOperationException($"Minimum delivery order amount is {branch.MinDeliveryOrderAmount.Value:0.00}.");
 
             order.GrandTotal = taxableAmount + order.TaxAmount + order.DeliveryCharge;
         }
