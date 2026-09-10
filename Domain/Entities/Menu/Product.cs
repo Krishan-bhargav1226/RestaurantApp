@@ -16,8 +16,6 @@ public class Product : BaseEntity
 
     public int CategoryId { get; set; }
 
-    public Category Category { get; set; } = null!;
-
     public FoodType FoodType { get; set; }
 
     public int PrepTimeMinutes { get; set; } = 15;
