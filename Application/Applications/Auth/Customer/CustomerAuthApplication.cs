@@ -1,5 +1,7 @@
 using Application.Applications.Auth;
 using Application.Dtos.Auth.Customer;
+using DomainCustomer = Domain.Entities.Customer;
+using DomainPasswordResetOTP = Domain.Entities.PasswordResetOTP;
 using Infrastructure.Repositories.Auth;
 using Microsoft.Extensions.Configuration;
 
@@ -24,7 +26,7 @@ public class CustomerAuthApplication : ICustomerAuthApplication
         if (await _authRepository.GetCustomerAsync(email) != null)
             throw new InvalidOperationException("Email is already registered.");
 
-        var customer = new Domain.Entities.Customer
+        var customer = new DomainCustomer
         {
             FullName = input.FullName.Trim(), Email = email,
             PasswordHash = AuthCryptoHelper.HashPassword(input.Password), IsEmailVerified = false
@@ -41,7 +43,7 @@ public class CustomerAuthApplication : ICustomerAuthApplication
         if (customer.IsEmailVerified) throw new InvalidOperationException("Email is already verified.");
 
         var otp = AuthCryptoHelper.GenerateOtp();
-        await _authRepository.CreatePasswordResetOTPAsync(new Domain.Entities.PasswordResetOTP
+        await _authRepository.CreatePasswordResetOTPAsync(new DomainPasswordResetOTP
         {
             PhoneOrEmail = normalizedEmail, Purpose = RegistrationOtpPurpose,
             OTPHash = AuthCryptoHelper.HashToken(otp), ExpiresAt = DateTime.UtcNow.AddMinutes(10), IsUsed = false
@@ -99,7 +101,7 @@ public class CustomerAuthApplication : ICustomerAuthApplication
         if (customer == null) throw new KeyNotFoundException("Customer not found.");
 
         var otp = AuthCryptoHelper.GenerateOtp();
-        await _authRepository.CreatePasswordResetOTPAsync(new Domain.Entities.PasswordResetOTP
+        await _authRepository.CreatePasswordResetOTPAsync(new DomainPasswordResetOTP
         {
             PhoneOrEmail = normalizedEmail, Purpose = PasswordResetOtpPurpose,
             OTPHash = AuthCryptoHelper.HashToken(otp), ExpiresAt = DateTime.UtcNow.AddMinutes(10), IsUsed = false
@@ -125,13 +127,13 @@ public class CustomerAuthApplication : ICustomerAuthApplication
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
-    private static CustomerRegistrationResponseDto CreateRegistrationResponse(Domain.Entities.Customer customer) => new()
+    private static CustomerRegistrationResponseDto CreateRegistrationResponse(DomainCustomer customer) => new()
     {
         Id = customer.Id, FullName = customer.FullName, Email = customer.Email,
         IsEmailVerified = customer.IsEmailVerified
     };
 
-    private CustomerAuthResponseDto CreateAuthResponse(Domain.Entities.Customer customer)
+    private CustomerAuthResponseDto CreateAuthResponse(DomainCustomer customer)
     {
         var response = new CustomerAuthResponseDto
         {
@@ -144,7 +146,7 @@ public class CustomerAuthApplication : ICustomerAuthApplication
         return response;
     }
 
-    private async Task SaveRefreshTokenAsync(Domain.Entities.Customer customer, CustomerAuthResponseDto response)
+    private async Task SaveRefreshTokenAsync(DomainCustomer customer, CustomerAuthResponseDto response)
     {
         customer.RefreshTokenHash = AuthCryptoHelper.HashToken(response.RefreshToken);
         customer.RefreshTokenExpiry = response.RefreshTokenExpiresAt; customer.UpdatedDate = DateTime.UtcNow;
