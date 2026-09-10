@@ -4,12 +4,14 @@ using Application.Applications.BranchProducts;
 using Application.Applications.Branches;
 using Application.Applications.Categories;
 using Application.Applications.CustomerAddresses;
+using Application.Applications.Customers;
 using Application.Applications.Ingredients;
 using Application.Applications.Orders;
 using Application.Applications.Products;
 using Application.Applications.RecipeIngredients;
 using Application.Applications.TableStatusHistories;
 using Application.Applications.Tables;
+using Application.Applications.Users;
 using Application.Common.Mapping;
 using Infrastructure;
 using Infrastructure.Repositories.Auth;
@@ -17,12 +19,14 @@ using Infrastructure.Repositories.BranchProducts;
 using Infrastructure.Repositories.Branches;
 using Infrastructure.Repositories.Categories;
 using Infrastructure.Repositories.CustomerAddresses;
+using Infrastructure.Repositories.Customers;
 using Infrastructure.Repositories.Ingredients;
 using Infrastructure.Repositories.Orders;
 using Infrastructure.Repositories.Products;
 using Infrastructure.Repositories.RecipeIngredients;
 using Infrastructure.Repositories.TableStatusHistories;
 using Infrastructure.Repositories.Tables;
+using Infrastructure.Repositories.Users;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -74,6 +78,8 @@ builder.Services.AddScoped<ITableStatusHistoryRepository, TableStatusHistoryRepo
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<ICustomerAddressRepository, CustomerAddressRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
 builder.Services.AddScoped<IBranchApplication, BranchApplication>();
 builder.Services.AddScoped<ICategoryApplication, CategoryApplication>();
@@ -86,6 +92,8 @@ builder.Services.AddScoped<ITableStatusHistoryApplication, TableStatusHistoryApp
 builder.Services.AddScoped<IOrderApplication, OrderApplication>();
 builder.Services.AddScoped<IAuthApplication, AuthApplication>();
 builder.Services.AddScoped<ICustomerAddressApplication, CustomerAddressApplication>();
+builder.Services.AddScoped<IUserApplication, UserApplication>();
+builder.Services.AddScoped<ICustomerApplication, CustomerApplication>();
 
 builder.Services.AddScoped<IEmailService, EmailService>();
 
