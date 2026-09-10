@@ -55,19 +55,6 @@ namespace WebApi.Controllers
             catch (Exception ex) { return BadRequest(ex.Message); }
         }
 
-        [HttpPost("resend-registration-otp")]
-        public async Task<IActionResult> ResendRegistrationOtp([FromBody] string phoneOrEmail)
-        {
-            try
-            {
-                var value = phoneOrEmail.Trim().ToLowerInvariant();
-                var otp = await _authApplication.GenerateRegistrationOtpAsync(value);
-                await SendRegistrationOtpEmailAsync(value, "there", otp);
-                return Ok("A new registration OTP has been sent to your email.");
-            }
-            catch (Exception ex) { return BadRequest(ex.Message); }
-        }
-
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto input)
         {
