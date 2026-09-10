@@ -13,9 +13,8 @@ namespace Domain.Entities
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
-        [Required]
         [MaxLength(20)]
-        public string Phone { get; set; } = string.Empty;
+        public string? Phone { get; set; }
 
         [Required]
         public string PasswordHash { get; set; } = string.Empty;
