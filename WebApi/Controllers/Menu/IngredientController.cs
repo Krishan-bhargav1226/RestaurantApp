@@ -1,11 +1,13 @@
 using Application.Applications.Ingredients;
 using Application.Dtos.Ingredients;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Roles = "SuperAdmin,BranchAdmin,Manager")]
     public class IngredientController : ControllerBase
     {
         private readonly IIngredientApplication _ingredientApplication;
