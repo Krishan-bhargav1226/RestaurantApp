@@ -63,7 +63,7 @@ public class UserAuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("resend-registration-otp")]
-    public async Task<IActionResult> ResendRegistrationOtp(VerifyUserOtpDto input)
+    public async Task<IActionResult> ResendRegistrationOtp(ResendUserRegistrationOtpDto input)
     {
         try
         {
