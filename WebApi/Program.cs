@@ -1,38 +1,45 @@
-using System.Text;
-using Application.Applications.Auth.Customer;
-using Application.Applications.Auth.User;
 using Application.Applications.BranchProducts;
 using Application.Applications.Branches;
 using Application.Applications.Categories;
 using Application.Applications.CustomerAddresses;
 using Application.Applications.Customers;
 using Application.Applications.Ingredients;
+using Application.Applications.LoyaltyRewards;
+using Application.Applications.LoyaltyTransactions;
+using Application.Applications.OrderItems;
 using Application.Applications.Orders;
+using Application.Applications.PasswordResetOTPs;
+using Application.Applications.Payments;
 using Application.Applications.Products;
 using Application.Applications.RecipeIngredients;
+using Application.Applications.StockItems;
+using Application.Applications.StockTransactions;
 using Application.Applications.TableStatusHistories;
 using Application.Applications.Tables;
 using Application.Applications.Users;
 using Application.Common.Mapping;
 using Infrastructure;
-using Infrastructure.Repositories.Auth;
 using Infrastructure.Repositories.BranchProducts;
 using Infrastructure.Repositories.Branches;
 using Infrastructure.Repositories.Categories;
 using Infrastructure.Repositories.CustomerAddresses;
 using Infrastructure.Repositories.Customers;
 using Infrastructure.Repositories.Ingredients;
+using Infrastructure.Repositories.LoyaltyRewards;
+using Infrastructure.Repositories.LoyaltyTransactions;
+using Infrastructure.Repositories.OrderItems;
 using Infrastructure.Repositories.Orders;
+using Infrastructure.Repositories.PasswordResetOTPs;
+using Infrastructure.Repositories.Payments;
 using Infrastructure.Repositories.Products;
 using Infrastructure.Repositories.RecipeIngredients;
+using Infrastructure.Repositories.StockItems;
+using Infrastructure.Repositories.StockTransactions;
 using Infrastructure.Repositories.Tables;
 using Infrastructure.Repositories.TableStatusHistories;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
-using WebApi.Services;
 using Infrastructure.Repositories.Users;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,22 +52,8 @@ builder.Services.AddSwaggerGen(options =>
         Title = "RestaurantApp API",
         Version = "v1"
     });
-
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Enter JWT token"
-    });
-
-    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-    {
-        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
-    });
 });
+
 builder.Services.AddProblemDetails();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -77,10 +70,16 @@ builder.Services.AddScoped<IRecipeIngredientRepository, RecipeIngredientReposito
 builder.Services.AddScoped<ITableRepository, TableRepository>();
 builder.Services.AddScoped<ITableStatusHistoryRepository, TableStatusHistoryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddScoped<IAuthRepository, AuthRepository>();
-builder.Services.AddScoped<ICustomerAddressRepository, CustomerAddressRepository>();
+builder.Services.AddScoped<IOrderItemRepository, OrderItemRepository>();
+builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<ILoyaltyTransactionRepository, LoyaltyTransactionRepository>();
+builder.Services.AddScoped<ILoyaltyRewardRepository, LoyaltyRewardRepository>();
+builder.Services.AddScoped<IStockItemRepository, StockItemRepository>();
+builder.Services.AddScoped<IStockTransactionRepository, StockTransactionRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ICustomerAddressRepository, CustomerAddressRepository>();
+builder.Services.AddScoped<IPasswordResetOTPRepository, PasswordResetOTPRepository>();
 
 builder.Services.AddScoped<IBranchApplication, BranchApplication>();
 builder.Services.AddScoped<ICategoryApplication, CategoryApplication>();
@@ -91,46 +90,18 @@ builder.Services.AddScoped<IRecipeIngredientApplication, RecipeIngredientApplica
 builder.Services.AddScoped<ITableApplication, TableApplication>();
 builder.Services.AddScoped<ITableStatusHistoryApplication, TableStatusHistoryApplication>();
 builder.Services.AddScoped<IOrderApplication, OrderApplication>();
-builder.Services.AddScoped<IUserAuthApplication, UserAuthApplication>();
-builder.Services.AddScoped<ICustomerAuthApplication, CustomerAuthApplication>();
-builder.Services.AddScoped<ICustomerAddressApplication, CustomerAddressApplication>();
+builder.Services.AddScoped<IOrderItemApplication, OrderItemApplication>();
+builder.Services.AddScoped<IPaymentApplication, PaymentApplication>();
+builder.Services.AddScoped<ILoyaltyTransactionApplication, LoyaltyTransactionApplication>();
+builder.Services.AddScoped<ILoyaltyRewardApplication, LoyaltyRewardApplication>();
+builder.Services.AddScoped<IStockItemApplication, StockItemApplication>();
+builder.Services.AddScoped<IStockTransactionApplication, StockTransactionApplication>();
 builder.Services.AddScoped<IUserApplication, UserApplication>();
 builder.Services.AddScoped<ICustomerApplication, CustomerApplication>();
-
-builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ICustomerAddressApplication, CustomerAddressApplication>();
+builder.Services.AddScoped<IPasswordResetOTPApplication, PasswordResetOTPApplication>();
 
 builder.Services.AddAutoMapper(cfg => { }, typeof(BranchProfile).Assembly);
-
-var jwtKey = builder.Configuration["Jwt:Key"];
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-var jwtAudience = builder.Configuration["Jwt:Audience"];
-
-if (string.IsNullOrWhiteSpace(jwtKey) ||
-    string.IsNullOrWhiteSpace(jwtIssuer) ||
-    string.IsNullOrWhiteSpace(jwtAudience))
-{
-    throw new InvalidOperationException("JWT settings are not configured correctly in appsettings.json.");
-}
-
-var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = signingKey,
-            ValidateIssuer = true,
-            ValidIssuer = jwtIssuer,
-            ValidateAudience = true,
-            ValidAudience = jwtAudience,
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
-        };
-    });
-
-builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -143,8 +114,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthentication();
-app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
