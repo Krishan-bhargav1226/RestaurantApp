@@ -68,8 +68,6 @@ public class UserAuthController : ControllerBase
         try
         {
             var otp = await _userAuthApplication.GenerateRegistrationOtpAsync(input.Email);
-            var result = await _userAuthApplication.GetType()
-                .GetMethod("ToString");
             await SendRegistrationOtpEmailAsync(input.Email.Trim(), "User", otp);
 
             return Ok(new { message = "Registration OTP has been resent successfully." });
