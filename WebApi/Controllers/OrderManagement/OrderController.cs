@@ -1,13 +1,12 @@
 using Application.Applications.Orders;
 using Application.Dtos.Orders;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "SuperAdmin,BranchAdmin,Manager,Staff")]
+
     public class OrderController : ControllerBase
     {
         private readonly IOrderApplication _orderApplication;
