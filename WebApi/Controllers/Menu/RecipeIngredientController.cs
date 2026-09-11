@@ -7,7 +7,7 @@ namespace WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin,BranchAdmin,Manager")]
     public class RecipeIngredientController : ControllerBase
     {
         private readonly IRecipeIngredientApplication _recipeIngredientApplication;
