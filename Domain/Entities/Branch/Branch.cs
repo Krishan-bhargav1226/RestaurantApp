@@ -24,14 +24,9 @@ public class Branch : BaseEntity
     [Required]
     [MaxLength(100)]
     public string State { get; set; } = string.Empty;
-
-    // Postal codes are not arithmetic values: they can carry leading zeros and
-    // must never overflow, so they are stored as text rather than int.
     [Required]
     [MaxLength(10)]
     public string PinCode { get; set; } = string.Empty;
-
-    // Phone numbers can exceed int range and may contain '+', spaces or dashes.
     [Required]
     [MaxLength(20)]
     public string Phone { get; set; } = string.Empty;
