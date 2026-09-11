@@ -1,6 +1,5 @@
 ﻿using Application.Applications.Branches;
 using Application.DTOs.Branches;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,7 +7,7 @@ namespace WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "SuperAdmin,BranchAdmin")]
+
     public class BranchController : ControllerBase
     {
         private readonly IBranchApplication _branchApplication;
