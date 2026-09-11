@@ -7,7 +7,7 @@ namespace WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin,BranchAdmin,Manager,Staff")]
     public class TableStatusHistoryController : ControllerBase
     {
         private readonly ITableStatusHistoryApplication _tableStatusHistoryApplication;
