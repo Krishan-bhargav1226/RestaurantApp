@@ -47,7 +47,7 @@ public class CustomerAuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("resend-registration-otp")]
-    public async Task<IActionResult> ResendRegistrationOtp(VerifyCustomerOtpDto input)
+    public async Task<IActionResult> ResendRegistrationOtp(ResendCustomerRegistrationOtpDto input)
     {
         try
         {
