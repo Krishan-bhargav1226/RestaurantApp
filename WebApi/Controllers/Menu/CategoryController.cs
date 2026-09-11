@@ -1,13 +1,12 @@
 ﻿using Application.Applications.Categories;
 using Application.Dtos.Categories;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "SuperAdmin,BranchAdmin,Manager")]
+
     public class CategoryController : ControllerBase
     {
         private readonly ICategoryApplication _categoryApplication;
