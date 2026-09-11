@@ -24,6 +24,11 @@ namespace Infrastructure
         public DbSet<Customer> Customers { get; set; }
         public DbSet<CustomerAddress> CustomerAddresses { get; set; }
         public DbSet<PasswordResetOTP> PasswordResetOTPs { get; set; }
+        public DbSet<Payment> Payments { get; set; }
+        public DbSet<LoyaltyTransaction> LoyaltyTransactions { get; set; }
+        public DbSet<LoyaltyReward> LoyaltyRewards { get; set; }
+        public DbSet<StockItem> StockItems { get; set; }
+        public DbSet<StockTransaction> StockTransactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -124,6 +129,48 @@ namespace Infrastructure
                 .HasForeignKey(x => x.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Payment>()
+                .HasOne<Order>()
+                .WithMany()
+                .HasForeignKey(x => x.OrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LoyaltyTransaction>()
+                .HasOne<Customer>()
+                .WithMany()
+                .HasForeignKey(x => x.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LoyaltyTransaction>()
+                .HasOne<Branch>()
+                .WithMany()
+                .HasForeignKey(x => x.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LoyaltyReward>()
+                .HasOne<Branch>()
+                .WithMany()
+                .HasForeignKey(x => x.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StockItem>()
+                .HasOne<Branch>()
+                .WithMany()
+                .HasForeignKey(x => x.BranchId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StockTransaction>()
+                .HasOne<StockItem>()
+                .WithMany()
+                .HasForeignKey(x => x.StockItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<StockTransaction>()
+                .HasOne<User>()
+                .WithMany()
+                .HasForeignKey(x => x.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             modelBuilder.Entity<User>()
                 .HasOne<Branch>()
                 .WithMany()
@@ -201,6 +248,21 @@ namespace Infrastructure
                 .HasQueryFilter(x => !x.IsDeleted);
 
             modelBuilder.Entity<PasswordResetOTP>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<Payment>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<LoyaltyTransaction>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<LoyaltyReward>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<StockItem>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<StockTransaction>()
                 .HasQueryFilter(x => !x.IsDeleted);
         }
     }
