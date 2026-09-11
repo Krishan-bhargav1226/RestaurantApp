@@ -1,14 +1,13 @@
 using System.Security.Claims;
 using Application.Applications.CustomerAddresses;
 using Application.Dtos.CustomerAddresses;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize]
+
 public class CustomerAddressesController : ControllerBase
 {
     private readonly ICustomerAddressApplication _customerAddressApplication;

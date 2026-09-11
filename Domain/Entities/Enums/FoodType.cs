@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+namespace Domain.Entities.Enums;
 
-namespace Domain.Entities.Enums
+public enum FoodType
 {
-
-    public enum FoodType
-    {
-        Veg = 1,
-        NonVeg = 2,
-
-        //Vegan = 3
-    }
+    Veg = 1,
+    NonVeg = 2,
+    Vegan = 3
 }

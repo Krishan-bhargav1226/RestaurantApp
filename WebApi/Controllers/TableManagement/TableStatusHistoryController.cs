@@ -1,13 +1,12 @@
 using Application.Applications.TableStatusHistories;
 using Application.Dtos.TableStatusHistories;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "SuperAdmin,BranchAdmin,Manager,Staff")]
+
     public class TableStatusHistoryController : ControllerBase
     {
         private readonly ITableStatusHistoryApplication _tableStatusHistoryApplication;

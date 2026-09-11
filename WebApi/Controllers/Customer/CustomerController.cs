@@ -1,13 +1,12 @@
 using Application.Applications.Customers;
 using Application.DTOs.Customers;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize(Roles = "SuperAdmin,BranchAdmin")]
+
 public class CustomerController : ControllerBase
 {
     private readonly ICustomerApplication _customerApplication;

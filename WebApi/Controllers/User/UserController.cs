@@ -1,13 +1,12 @@
 using Application.Applications.Users;
 using Application.DTOs.Users;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize(Roles = "SuperAdmin,BranchAdmin")]
+
 public class UserController : ControllerBase
 {
     private readonly IUserApplication _userApplication;

@@ -43,8 +43,6 @@ public class BranchRepository : IBranchRepository
 
     public async Task DeleteAsync(Branch branch)
     {
-        // Soft delete: flag the row instead of removing it. The global query
-        // filter hides it from every subsequent read.
         branch.IsDeleted = true;
         _context.Branches.Update(branch);
         await _context.SaveChangesAsync();

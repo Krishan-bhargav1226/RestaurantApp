@@ -1,13 +1,12 @@
 using Application.Applications.Tables;
 using Application.Dtos.Tables;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "SuperAdmin,BranchAdmin,Manager,Staff")]
+
     public class TableController : ControllerBase
     {
         private readonly ITableApplication _tableApplication;
