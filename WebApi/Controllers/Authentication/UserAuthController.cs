@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using Application.Applications.Auth.User;
 using Application.Dtos.Auth.User;
+using Domain.Entities.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.Services;
@@ -25,8 +27,19 @@ public class UserAuthController : ControllerBase
     {
         try
         {
-            if (!(User.Identity?.IsAuthenticated ?? false) && input.Role != Domain.Entities.Enums.UserRole.Staff)
-                return BadRequest("Public registration can only create Staff users.");
+            var currentRole = User.FindFirstValue(ClaimTypes.Role);
+
+            if (!User.Identity?.IsAuthenticated ?? true)
+            {
+                if (input.Role != UserRole.Staff)
+                    return Forbid();
+            }
+            else if (currentRole != UserRole.SuperAdmin.ToString())
+            {
+                if (currentRole != UserRole.BranchAdmin.ToString() ||
+                    input.Role is not (UserRole.Manager or UserRole.Staff))
+                    return Forbid();
+            }
 
             var result = await _userAuthApplication.RegisterAsync(input);
             var otp = await _userAuthApplication.GenerateRegistrationOtpAsync(result.Email);
@@ -38,9 +51,36 @@ public class UserAuthController : ControllerBase
                 data = result
             });
         }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
+        }
         catch (Exception ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("resend-registration-otp")]
+    public async Task<IActionResult> ResendRegistrationOtp(VerifyUserOtpDto input)
+    {
+        try
+        {
+            var otp = await _userAuthApplication.GenerateRegistrationOtpAsync(input.Email);
+            var result = await _userAuthApplication.GetType()
+                .GetMethod("ToString");
+            await SendRegistrationOtpEmailAsync(input.Email.Trim(), "User", otp);
+
+            return Ok(new { message = "Registration OTP has been resent successfully." });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(new { error = ex.Message });
         }
     }
 
@@ -51,15 +91,20 @@ public class UserAuthController : ControllerBase
         try
         {
             var result = await _userAuthApplication.VerifyRegistrationOtpAsync(input);
+
             return Ok(new
             {
                 message = "Email verified successfully. Registration is complete. Please login to receive an access token.",
                 data = result
             });
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
         }
     }
 
@@ -76,10 +121,6 @@ public class UserAuthController : ControllerBase
         {
             return Unauthorized(new { error = ex.Message });
         }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
-        }
     }
 
     [AllowAnonymous]
@@ -88,15 +129,12 @@ public class UserAuthController : ControllerBase
     {
         try
         {
-            return Ok(await _userAuthApplication.RefreshTokenAsync(input));
+            var result = await _userAuthApplication.RefreshTokenAsync(input);
+            return Ok(new { message = "Token refreshed successfully", data = result });
         }
         catch (UnauthorizedAccessException ex)
         {
             return Unauthorized(new { error = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(ex.Message);
         }
     }
 
@@ -109,11 +147,11 @@ public class UserAuthController : ControllerBase
             var otp = await _userAuthApplication.ForgotPasswordAsync(input.Email);
             var body = $"<html><body style='font-family:Arial,sans-serif;'><h3>Password Reset</h3><p>Your RestaurantApp password reset OTP is:</p><h2>{otp}</h2><p>This OTP will expire in 10 minutes.</p></body></html>";
             await _emailService.SendEmailAsync(input.Email, "RestaurantApp Password Reset OTP", body);
-            return Ok("OTP has been sent to your email.");
+            return Ok(new { message = "Password reset OTP has been sent to your email." });
         }
-        catch (Exception ex)
+        catch (KeyNotFoundException ex)
         {
-            return BadRequest(ex.Message);
+            return NotFound(new { error = ex.Message });
         }
     }
 
@@ -124,32 +162,40 @@ public class UserAuthController : ControllerBase
         try
         {
             await _userAuthApplication.ResetPasswordAsync(input);
-            return Ok("Password has been reset successfully.");
+            return Ok(new { message = "Password has been reset successfully." });
         }
-        catch (Exception ex)
+        catch (InvalidOperationException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
         }
     }
 
-    [Authorize(Roles = "SuperAdmin,BranchAdmin")]
+    [Authorize(Roles = "SuperAdmin")]
     [HttpPut("{userId:int}/assign-role")]
     public async Task<IActionResult> AssignRole(int userId, AssignRoleDto input)
     {
         try
         {
+            if (!Enum.IsDefined(input.Role))
+                return BadRequest(new { error = "Invalid role." });
+
             var result = await _userAuthApplication.AssignRoleAsync(userId, input);
             return Ok(new { message = "User role updated successfully.", data = result });
         }
-        catch (Exception ex)
+        catch (KeyNotFoundException ex)
         {
-            return BadRequest(ex.Message);
+            return NotFound(new { error = ex.Message });
         }
     }
 
     private async Task SendRegistrationOtpEmailAsync(string email, string fullName, string otp)
     {
-        var body = $"<html><body style='font-family:Arial,sans-serif;'><h3>Welcome to RestaurantApp, {fullName}!</h3><p>Your registration OTP is:</p><h2>{otp}</h2><p>This OTP will expire in 10 minutes.</p><p>If you did not create this account, you can ignore this email.</p></body></html>";
+        var displayName = string.IsNullOrWhiteSpace(fullName) ? "User" : fullName;
+        var body = $"<html><body style='font-family:Arial,sans-serif;'><h3>Welcome to RestaurantApp, {displayName}!</h3><p>Your registration OTP is:</p><h2>{otp}</h2><p>This OTP will expire in 10 minutes.</p><p>If you did not create this account, you can ignore this email.</p></body></html>";
         await _emailService.SendEmailAsync(email, "RestaurantApp Registration OTP", body);
     }
 }
