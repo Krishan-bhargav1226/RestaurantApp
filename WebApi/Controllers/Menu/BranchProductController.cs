@@ -7,7 +7,7 @@ namespace WebApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin,BranchAdmin,Manager")]
     public class BranchProductController : ControllerBase
     {
         private readonly IBranchProductApplication _branchProductApplication;
