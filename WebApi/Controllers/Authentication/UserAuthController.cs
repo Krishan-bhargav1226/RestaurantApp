@@ -2,6 +2,7 @@ using Application.Applications.Auth.User;
 using Application.Dtos.Auth.User;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Application.Dtos.Auth.User;
 using WebApi.Services;
 
 namespace WebApi.Controllers;

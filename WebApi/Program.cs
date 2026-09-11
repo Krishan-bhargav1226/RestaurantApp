@@ -32,6 +32,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using WebApi.Services;
+using Infrastructure.Repositories.Users;
 
 var builder = WebApplication.CreateBuilder(args);
 
