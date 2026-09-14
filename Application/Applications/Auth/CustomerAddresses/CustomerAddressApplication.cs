@@ -23,12 +23,8 @@ namespace Application.Applications.CustomerAddresses
             _mapper = mapper;
         }
 
-        public async Task<List<CustomerAddressDto>> GetByCustomerIdAsync(int customerId)
-        {
-            var addresses = await _customerAddressRepository.GetByCustomerIdAsync(customerId);
 
-            return _mapper.Map<List<CustomerAddressDto>>(addresses);
-        }
+        public async Task<List<CustomerAddressDto>> GetAllAsync() { var addresses = await _customerAddressRepository.GetAllAsync(); return _mapper.Map<List<CustomerAddressDto>>(addresses); }
 
         public async Task<CustomerAddressDto> GetByIdAsync(int id)
         {

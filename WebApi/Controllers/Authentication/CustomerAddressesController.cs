@@ -1,7 +1,7 @@
-using System.Security.Claims;
 using Application.Applications.CustomerAddresses;
 using Application.Dtos.CustomerAddresses;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace WebApi.Controllers;
 
@@ -16,15 +16,10 @@ public class CustomerAddressesController : ControllerBase
     {
         _customerAddressApplication = customerAddressApplication;
     }
-
-    [HttpGet("customer/{customerId:int}")]
-    public async Task<IActionResult> GetByCustomer(int customerId)
-    {
-        if (!CanAccessCustomer(customerId))
-            return Forbid();
-
-        var result = await _customerAddressApplication.GetByCustomerIdAsync(customerId);
-        return Ok(result);
+    [HttpGet]
+    public async Task<IActionResult> GetAll() { 
+        var result = await _customerAddressApplication.GetAllAsync();
+        return Ok(result); 
     }
 
     [HttpGet("{id:int}")]
