@@ -17,6 +17,7 @@ namespace Infrastructure
         public DbSet<Ingredient> Ingredients { get; set; }
         public DbSet<RecipeIngredient> RecipeIngredients { get; set; }
         public DbSet<Table> Tables { get; set; }
+        public DbSet<TableSession> TableSessions { get; set; }
         public DbSet<TableStatusHistory> TableStatusHistories { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
@@ -74,6 +75,18 @@ namespace Infrastructure
                 .HasIndex(x => new { x.BranchId, x.TableNumber })
                 .IsUnique()
                 .HasFilter("[IsDeleted] = 0");
+
+            modelBuilder.Entity<TableSession>()
+                .HasOne<Table>()
+                .WithMany()
+                .HasForeignKey(x => x.TableId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TableSession>()
+                .HasOne<Customer>()
+                .WithMany()
+                .HasForeignKey(x => x.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<TableStatusHistory>()
                 .HasOne<Table>()
@@ -227,6 +240,9 @@ namespace Infrastructure
                 .HasQueryFilter(x => !x.IsDeleted);
 
             modelBuilder.Entity<Table>()
+                .HasQueryFilter(x => !x.IsDeleted);
+
+            modelBuilder.Entity<TableSession>()
                 .HasQueryFilter(x => !x.IsDeleted);
 
             modelBuilder.Entity<TableStatusHistory>()
