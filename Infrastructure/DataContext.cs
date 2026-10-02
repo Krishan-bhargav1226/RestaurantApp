@@ -356,7 +356,7 @@ public class DataContext : DbContext
             .HasFilter("[OrderNumber] IS NOT NULL AND [IsDeleted] = 0");
 
         modelBuilder.Entity<Order>()
-            .HasIndex(x => new { x.VenueId, x.WorkflowStatus, x.PlacedAt });
+            .HasIndex(x => new { x.VenueId, x.WorkflowStatus, x.OrderDate });
 
         modelBuilder.Entity<Payment>()
             .HasIndex(x => x.ProviderPaymentId)

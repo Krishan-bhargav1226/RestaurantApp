@@ -1,9 +1,4 @@
-﻿using Application.Dtos.Branches;
-using Application.DTOs.Branches;
-using Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Application.Dtos.Branches;
 
 namespace Application.Applications.Branches
 {

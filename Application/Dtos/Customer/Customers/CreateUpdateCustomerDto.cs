@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Application.DTOs.Customers;
+namespace Application.Dtos.Customers;
 
 public class CreateUpdateCustomerDto
 {

@@ -4,5 +4,7 @@ public enum FoodType
 {
     Veg = 1,
     NonVeg = 2,
-    Vegan = 3
+    Egg = 3,
+    Vegan = 4,
+    Other = 5
 }

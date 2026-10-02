@@ -1,4 +1,4 @@
-﻿using Application.Applications.TableSessions;
+using Application.Applications.TableSessions;
 using Application.Dtos.TableSessions;
 using Microsoft.AspNetCore.Mvc;
 

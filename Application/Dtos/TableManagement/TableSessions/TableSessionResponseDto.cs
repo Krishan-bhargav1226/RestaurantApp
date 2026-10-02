@@ -1,4 +1,4 @@
-﻿namespace Application.Dtos.TableSessions;
+namespace Application.Dtos.TableSessions;
 
 public class TableSessionResponseDto
 {

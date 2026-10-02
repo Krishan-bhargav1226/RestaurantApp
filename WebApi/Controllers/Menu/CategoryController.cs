@@ -1,4 +1,4 @@
-﻿using Application.Applications.Categories;
+using Application.Applications.Categories;
 using Application.Dtos.Categories;
 using Microsoft.AspNetCore.Mvc;
 

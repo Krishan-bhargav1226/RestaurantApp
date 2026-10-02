@@ -1,6 +1,6 @@
-using System.ComponentModel.DataAnnotations;
 using Application.Dtos.OrderItems;
 using Domain.Entities.Enums;
+using System.ComponentModel.DataAnnotations;
 
 namespace Application.Dtos.Orders
 {

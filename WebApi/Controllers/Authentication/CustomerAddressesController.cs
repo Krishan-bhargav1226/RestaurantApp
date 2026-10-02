@@ -17,9 +17,10 @@ public class CustomerAddressesController : ControllerBase
         _customerAddressApplication = customerAddressApplication;
     }
     [HttpGet]
-    public async Task<IActionResult> GetAll() { 
+    public async Task<IActionResult> GetAll()
+    {
         var result = await _customerAddressApplication.GetAllAsync();
-        return Ok(result); 
+        return Ok(result);
     }
 
     [HttpGet("{id:int}")]

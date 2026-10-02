@@ -1,6 +1,5 @@
-﻿using Application.Applications.Branches;
-using Application.DTOs.Branches;
-using Microsoft.AspNetCore.Http;
+using Application.Applications.Branches;
+using Application.Dtos.Branches;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers

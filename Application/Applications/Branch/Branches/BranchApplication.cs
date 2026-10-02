@@ -1,5 +1,4 @@
-﻿using Application.Dtos.Branches;
-using Application.DTOs.Branches;
+using Application.Dtos.Branches;
 using AutoMapper;
 using Domain.Entities;
 using Infrastructure.Repositories.Branches;

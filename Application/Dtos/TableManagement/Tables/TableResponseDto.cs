@@ -1,5 +1,3 @@
-using Domain.Entities.Enums;
-
 namespace Application.Dtos.Tables;
 
 public class TableResponseDto

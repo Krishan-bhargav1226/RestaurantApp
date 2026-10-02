@@ -1,5 +1,4 @@
 using Application.Dtos.Users;
-using Application.DTOs.Users;
 
 namespace Application.Applications.Users;
 

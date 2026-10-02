@@ -1,5 +1,4 @@
 using Domain.Entities;
-using Infrastructure.Repositories.Branches;
 using Microsoft.EntityFrameworkCore;
 
 namespace Infrastructure.Repositories.Branches;

@@ -1,5 +1,5 @@
 using Application.Applications.Customers;
-using Application.DTOs.Customers;
+using Application.Dtos.Customers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;

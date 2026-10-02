@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Application.DTOs.Branches
+namespace Application.Dtos.Branches
 {
     public class CreateUpdateBranchDto
     {

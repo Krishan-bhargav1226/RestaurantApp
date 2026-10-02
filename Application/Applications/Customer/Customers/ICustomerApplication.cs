@@ -1,5 +1,4 @@
 using Application.Dtos.Customers;
-using Application.DTOs.Customers;
 
 namespace Application.Applications.Customers;
 

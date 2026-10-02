@@ -1,7 +1,7 @@
-using System.ComponentModel.DataAnnotations;
 using Domain.Entities.Enums;
+using System.ComponentModel.DataAnnotations;
 
-namespace Application.DTOs.Users;
+namespace Application.Dtos.Users;
 
 public class CreateUpdateUserDto
 {

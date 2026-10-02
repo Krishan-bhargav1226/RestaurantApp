@@ -1,5 +1,5 @@
-using Application.Applications.BranchProducts;
 using Application.Applications.Branches;
+using Application.Applications.BranchProducts;
 using Application.Applications.Categories;
 using Application.Applications.CustomerAddresses;
 using Application.Applications.Customers;
@@ -14,13 +14,15 @@ using Application.Applications.Products;
 using Application.Applications.RecipeIngredients;
 using Application.Applications.StockItems;
 using Application.Applications.StockTransactions;
-using Application.Applications.TableStatusHistories;
 using Application.Applications.Tables;
+using Application.Applications.TableSessions;
+using Application.Applications.TableStatusHistories;
 using Application.Applications.Users;
 using Application.Common.Mapping;
 using Infrastructure;
-using Infrastructure.Repositories.BranchProducts;
+using Infrastructure.MultiTenancy;
 using Infrastructure.Repositories.Branches;
+using Infrastructure.Repositories.BranchProducts;
 using Infrastructure.Repositories.Categories;
 using Infrastructure.Repositories.CustomerAddresses;
 using Infrastructure.Repositories.Customers;
@@ -29,6 +31,7 @@ using Infrastructure.Repositories.LoyaltyRewards;
 using Infrastructure.Repositories.LoyaltyTransactions;
 using Infrastructure.Repositories.OrderItems;
 using Infrastructure.Repositories.Orders;
+using Infrastructure.Repositories.Parosa;
 using Infrastructure.Repositories.PasswordResetOTPs;
 using Infrastructure.Repositories.Payments;
 using Infrastructure.Repositories.Products;
@@ -36,16 +39,20 @@ using Infrastructure.Repositories.RecipeIngredients;
 using Infrastructure.Repositories.StockItems;
 using Infrastructure.Repositories.StockTransactions;
 using Infrastructure.Repositories.Tables;
-using Infrastructure.Repositories.TableStatusHistories;
-using Application.Applications.TableSessions;
 using Infrastructure.Repositories.TableSessions;
+using Infrastructure.Repositories.TableStatusHistories;
 using Infrastructure.Repositories.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -58,11 +65,26 @@ builder.Services.AddSwaggerGen(options =>
 
 builder.Services.AddProblemDetails();
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+// Multi-tenancy
+builder.Services.AddScoped<TenantContext>();
+builder.Services.AddScoped<ITenantContext>(sp => sp.GetRequiredService<TenantContext>());
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlServer(connectionString));
 
+// Legacy repositories
 builder.Services.AddScoped<IBranchRepository, BranchRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
@@ -72,9 +94,9 @@ builder.Services.AddScoped<IRecipeIngredientRepository, RecipeIngredientReposito
 builder.Services.AddScoped<ITableRepository, TableRepository>();
 builder.Services.AddScoped<ITableStatusHistoryRepository, TableStatusHistoryRepository>();
 builder.Services.AddScoped<ITableSessionRepository, TableSessionRepository>();
-builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<Infrastructure.Repositories.Orders.IOrderRepository, Infrastructure.Repositories.Orders.OrderRepository>();
 builder.Services.AddScoped<IOrderItemRepository, OrderItemRepository>();
-builder.Services.AddScoped<IPaymentRepository, PaymentRepository>();
+builder.Services.AddScoped<Infrastructure.Repositories.Payments.IPaymentRepository, Infrastructure.Repositories.Payments.PaymentRepository>();
 builder.Services.AddScoped<ILoyaltyTransactionRepository, LoyaltyTransactionRepository>();
 builder.Services.AddScoped<ILoyaltyRewardRepository, LoyaltyRewardRepository>();
 builder.Services.AddScoped<IStockItemRepository, StockItemRepository>();
@@ -84,6 +106,28 @@ builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<ICustomerAddressRepository, CustomerAddressRepository>();
 builder.Services.AddScoped<IPasswordResetOTPRepository, PasswordResetOTPRepository>();
 
+// Parosa repositories
+builder.Services.AddScoped<IVenueRepository, VenueRepository>();
+builder.Services.AddScoped<IOutletRepository, OutletRepository>();
+builder.Services.AddScoped<ISectionRepository, SectionRepository>();
+builder.Services.AddScoped<ISeatTableRepository, SeatTableRepository>();
+builder.Services.AddScoped<IQRCodeRepository, QRCodeRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IMenuCategoryRepository, MenuCategoryRepository>();
+builder.Services.AddScoped<IMenuItemRepository, MenuItemRepository>();
+builder.Services.AddScoped<ICartRepository, CartRepository>();
+builder.Services.AddScoped<Infrastructure.Repositories.Parosa.IOrderRepository, Infrastructure.Repositories.Parosa.OrderRepository>();
+builder.Services.AddScoped<Infrastructure.Repositories.Parosa.IPaymentRepository, Infrastructure.Repositories.Parosa.PaymentRepository>();
+builder.Services.AddScoped<IRefundRepository, RefundRepository>();
+builder.Services.AddScoped<ICouponRepository, CouponRepository>();
+builder.Services.AddScoped<ICouponRedemptionRepository, CouponRedemptionRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
+builder.Services.AddScoped<IStaffShiftRepository, StaffShiftRepository>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<IPlanRepository, PlanRepository>();
+builder.Services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+
+// Legacy application services
 builder.Services.AddScoped<IBranchApplication, BranchApplication>();
 builder.Services.AddScoped<ICategoryApplication, CategoryApplication>();
 builder.Services.AddScoped<IProductApplication, ProductApplication>();
@@ -118,6 +162,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors();
 app.MapControllers();
 
 app.Run();

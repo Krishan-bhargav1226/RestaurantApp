@@ -1,4 +1,4 @@
-﻿using Application.Dtos.TableSessions;
+using Application.Dtos.TableSessions;
 using AutoMapper;
 using Domain.Entities;
 

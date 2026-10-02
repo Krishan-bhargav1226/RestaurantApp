@@ -17,5 +17,4 @@ public class LoyaltyReward : BaseEntity
     [Range(1, int.MaxValue)]
     public int PointsRequired { get; set; }
 
-    public bool IsActive { get; set; } = true;
 }

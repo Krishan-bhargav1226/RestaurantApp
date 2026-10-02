@@ -1,5 +1,4 @@
 using Application.Dtos.Customers;
-using Application.DTOs.Customers;
 using AutoMapper;
 using Domain.Entities;
 using Infrastructure.Repositories.Customers;

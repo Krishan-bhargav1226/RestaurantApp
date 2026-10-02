@@ -1,4 +1,4 @@
-﻿using Application.Dtos.Categories;
+using Application.Dtos.Categories;
 
 namespace Application.Applications.Categories
 {

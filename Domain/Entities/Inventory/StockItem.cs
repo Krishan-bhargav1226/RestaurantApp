@@ -18,5 +18,4 @@ public class StockItem : BaseEntity
     [Range(0, double.MaxValue)]
     public decimal ReorderLevel { get; set; }
 
-    public bool IsActive { get; set; } = true;
 }
