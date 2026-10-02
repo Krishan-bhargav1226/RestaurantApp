@@ -38,6 +38,7 @@ public interface IPaymentRepository : IRepository<Payment>
 }
 
 public interface IRefundRepository : IRepository<Refund> { }
+
 public interface ICouponRepository : IRepository<Coupon>
 {
     Task<Coupon?> GetByCodeAsync(string code);
@@ -76,9 +77,12 @@ public sealed class QRCodeRepository : Repository<QRCode>, IQRCodeRepository
 
     public Task<QRCode?> GetByTokenAsync(string token)
     {
-        return Set.FirstOrDefaultAsync(x =>
-            x.Token == token &&
-            x.Status == QRCodeStatus.Active);
+        return Set
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(x =>
+                x.Token == token &&
+                !x.IsDeleted &&
+                x.Status == QRCodeStatus.Active);
     }
 }
 
