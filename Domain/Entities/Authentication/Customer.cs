@@ -1,35 +1,36 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Domain.Entities
+namespace Domain.Entities;
+
+public class Customer : BaseEntity
 {
-    public class Customer : BaseEntity
-    {
-        [Required]
-        [MaxLength(150)]
-        public string FullName { get; set; } = string.Empty;
+    [Required, MaxLength(150)]
+    public string FullName { get; set; } = string.Empty;
 
-        [Required]
-        [MaxLength(150)]
-        [EmailAddress]
-        public string Email { get; set; } = string.Empty;
+    [MaxLength(150), EmailAddress]
+    public string? Email { get; set; }
 
-        [MaxLength(20)]
-        public string? Phone { get; set; }
+    [MaxLength(20)]
+    public string? Phone { get; set; }
 
-        [Required]
-        public string PasswordHash { get; set; } = string.Empty;
+    public int? VenueId { get; set; }
 
-        [MaxLength(500)]
-        public string? ProfileImagePath { get; set; }
+    [MaxLength(500)]
+    public string? ProfileImagePath { get; set; }
 
-        public int LoyaltyPoints { get; set; }
+    public int LoyaltyPoints { get; set; }
 
-        public string? RefreshTokenHash { get; set; }
+    public string? PasswordHash { get; set; }
 
-        public DateTime? RefreshTokenExpiry { get; set; }
+    public string? RefreshTokenHash { get; set; }
 
-        public bool IsEmailVerified { get; set; } = false;
+    public DateTime? RefreshTokenExpiry { get; set; }
 
-        public ICollection<CustomerAddress> Addresses { get; set; } = new List<CustomerAddress>();
-    }
+    public bool IsEmailVerified { get; set; }
+
+    public bool IsPhoneVerified { get; set; }
+
+    public DateTime? LastOtpVerifiedAt { get; set; }
+
+    public ICollection<CustomerAddress> Addresses { get; set; } = new List<CustomerAddress>();
 }
